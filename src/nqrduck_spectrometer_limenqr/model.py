@@ -7,6 +7,3 @@ class LimeNQRModel(ModuleModel):
 
     def __init__(self, module) -> None:
         super().__init__(module)
-
-    def is_spectrometer(self):
-        return True
