@@ -7,7 +7,7 @@ allow-direct-references = true
 
 [project]
 name = "nqrduck-spectrometer-limenqr"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Julia Pfitzer", email="git@jupfi.me" },
 ]
@@ -27,3 +27,6 @@ dependencies = [
     "nqrduck-spectrometer",
     "pyqt5",
 ]
+
+[project.entry-points."nqrduck"]
+"nqrduck-spectrometer-limenqr" = "nqrduck_spectrometer_limenqr.limenqr:LimeNQR"
