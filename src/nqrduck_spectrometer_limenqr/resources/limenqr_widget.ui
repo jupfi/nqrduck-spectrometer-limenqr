@@ -24,23 +24,10 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QStackedWidget" name="stackedWidget">
-      <widget class="QWidget" name="page">
-       <widget class="QPushButton" name="pushButton">
-        <property name="geometry">
-         <rect>
-          <x>10</x>
-          <y>10</y>
-          <width>88</width>
-          <height>34</height>
-         </rect>
-        </property>
-        <property name="text">
-         <string>LimeNQR</string>
-        </property>
-       </widget>
-      </widget>
-      <widget class="QWidget" name="page_2"/>
+     <widget class="QPushButton" name="pushButton">
+      <property name="text">
+       <string>Quack!</string>
+      </property>
      </widget>
     </item>
    </layout>
