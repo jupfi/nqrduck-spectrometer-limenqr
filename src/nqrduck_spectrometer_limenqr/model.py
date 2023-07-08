@@ -1,12 +1,55 @@
 import logging
 from nqrduck.module.module_model import ModuleModel
+from nqrduck_spectrometer.base_spectrometer_model import BaseSpectrometerModel
 
 logger = logging.getLogger(__name__)
 
 
-class LimeNQRModel(ModuleModel):
+class LimeNQRModel(BaseSpectrometerModel):
+
     def __init__(self, module) -> None:
         super().__init__(module)
+        self.add_setting("rx_gain", 55, "RX Gain")
+        self.add_setting("tx_gain", 40, "TX Gain")
+        self.add_pulse_parameter_option("tx_pulse", [self.RectPulse, self.SincPulse, self.GaussianPulse])
+        self.add_pulse_parameter_option("rx_readout", [self.RXReadout])
+        self.add_pulse_parameter_option("gate", [self.Gate])
+
+        try:
+            from nqrduck_pulseprogrammer.pulseprogrammer import PulseProgrammer
+            self.pulse_programmer = PulseProgrammer
+            self.pulse_programmer.controller.on_loading(self.pulse_parameter_options)
+        except ImportError:
+            logger.warning("No pulse programmer found.")
+
+    class TXPulse(BaseSpectrometerModel.PulseParameter):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+            self.tx_freq = 0
+            self.tx_phase = 0
+
+    class RectPulse(TXPulse):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+  
+    class SincPulse(TXPulse):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+
+    class GaussianPulse(TXPulse):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+
+    class RXReadout(BaseSpectrometerModel.PulseParameter):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+            self.rx_freq = 0
+            self.rx_phase = 0
+
+    class Gate(BaseSpectrometerModel.PulseParameter):
+        def __init__(self, name) -> None:
+            super().__init__(name)
+            self.state = False
 
     @property
     def rx_antenna(self):
@@ -56,10 +99,13 @@ class LimeNQRModel(ModuleModel):
     def tx_lpfbw(self, value):
         self._tx_lpfbw = value
 
+    # Pulse params
+
     @property
-    def rx_freq(self):
-        return self._rx_freq
+    def tx_freq(self):
+        return self._tx_freq
     
-    @rx_freq.setter
-    def rx_freq(self, value):
-        self._rx_freq = value
+    @tx_freq.setter
+    def tx_freq(self, value):
+        self._tx_freq = value
+

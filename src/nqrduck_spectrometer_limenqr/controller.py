@@ -9,4 +9,4 @@ class LimeNQRController(BaseSpectrometerController):
         super().__init__(module)
 
     def start_measurement(self):
-        logger.debug("Starting measurement with spectrometer: %s", self._module._model.name)
+        logger.debug("Starting measurement with spectrometer: %s", self.module.model.name)
