@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget
 from nqrduck.module.module_view import ModuleView
 from .widget import Ui_Form
 
