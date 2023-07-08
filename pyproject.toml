@@ -25,7 +25,7 @@ classifiers = [
 
 dependencies = [
     "nqrduck-spectrometer",
-    "pyqt5",
+    "pyqt6",
 ]
 
 [project.entry-points."nqrduck"]
