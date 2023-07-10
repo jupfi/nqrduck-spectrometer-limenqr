@@ -9,8 +9,8 @@ class LimeNQRModel(BaseSpectrometerModel):
 
     def __init__(self, module) -> None:
         super().__init__(module)
-        self.add_setting("rx_gain", 55, "RX Gain")
-        self.add_setting("tx_gain", 40, "TX Gain")
+        self.add_setting("RX Gain", 55, "RX Gain")
+        self.add_setting("TX Gain", 40, "TX Gain")
         self.add_pulse_parameter_option("tx_pulse", [self.RectPulse, self.SincPulse, self.GaussianPulse])
         self.add_pulse_parameter_option("rx_readout", [self.RXReadout])
         self.add_pulse_parameter_option("gate", [self.Gate])

@@ -1,14 +1,10 @@
 from PyQt6.QtWidgets import QWidget
-from nqrduck.module.module_view import ModuleView
-from .widget import Ui_Form
+from nqrduck_spectrometer.base_spectrometer_view import BaseSpectrometerView
 
 
-class LimeNQRView(ModuleView):
+class LimeNQRView(BaseSpectrometerView):
     def __init__(self, module):
         super().__init__(module)
 
-        widget = QWidget()
-        self._ui_form = Ui_Form()
-        self._ui_form.setupUi(self)
-        self.widget = widget
+        self.widget = self.load_settings_ui()
         
