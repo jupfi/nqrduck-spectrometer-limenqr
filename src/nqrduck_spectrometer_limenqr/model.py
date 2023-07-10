@@ -16,8 +16,9 @@ class LimeNQRModel(BaseSpectrometerModel):
         self.add_pulse_parameter_option("gate", [self.Gate])
 
         try:
-            from nqrduck_pulseprogrammer.pulseprogrammer import PulseProgrammer
-            self.pulse_programmer = PulseProgrammer
+            from nqrduck_pulseprogrammer.pulseprogrammer import pulse_programmer
+            self.pulse_programmer = pulse_programmer
+            logger.debug("Pulse programmer found.")
             self.pulse_programmer.controller.on_loading(self.pulse_parameter_options)
         except ImportError:
             logger.warning("No pulse programmer found.")
