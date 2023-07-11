@@ -1,6 +1,7 @@
 import logging
 from nqrduck.module.module_model import ModuleModel
 from nqrduck_spectrometer.base_spectrometer_model import BaseSpectrometerModel
+from nqrduck_spectrometer.base_spectrometer_pulseparameters import Gate
 
 logger = logging.getLogger(__name__)
 
@@ -9,11 +10,14 @@ class LimeNQRModel(BaseSpectrometerModel):
 
     def __init__(self, module) -> None:
         super().__init__(module)
+        self.add_setting("Frequency", 100, "Experiment frequency")
+        self.add_setting("Averages", 100, "Number of averages")
+        self.add_setting("Acquisition Points", 32, "Acquisition points")
+        self.add_setting("Dwell time", "400n", "Dwell time")
         self.add_setting("RX Gain", 55, "RX Gain")
         self.add_setting("TX Gain", 40, "TX Gain")
-        self.add_pulse_parameter_option("tx_pulse", [self.RectPulse, self.SincPulse, self.GaussianPulse])
-        self.add_pulse_parameter_option("rx_readout", [self.RXReadout])
-        self.add_pulse_parameter_option("gate", [self.Gate])
+        self.add_pulse_parameter_option("TX Gate", Gate)
+        self.add_pulse_parameter_option("RX Gate", Gate)
 
         try:
             from nqrduck_pulseprogrammer.pulseprogrammer import pulse_programmer
@@ -22,35 +26,6 @@ class LimeNQRModel(BaseSpectrometerModel):
             self.pulse_programmer.controller.on_loading(self.pulse_parameter_options)
         except ImportError:
             logger.warning("No pulse programmer found.")
-
-    class TXPulse(BaseSpectrometerModel.PulseParameter):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-            self.tx_freq = 0
-            self.tx_phase = 0
-
-    class RectPulse(TXPulse):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-  
-    class SincPulse(TXPulse):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-
-    class GaussianPulse(TXPulse):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-
-    class RXReadout(BaseSpectrometerModel.PulseParameter):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-            self.rx_freq = 0
-            self.rx_phase = 0
-
-    class Gate(BaseSpectrometerModel.PulseParameter):
-        def __init__(self, name) -> None:
-            super().__init__(name)
-            self.state = False
 
     @property
     def rx_antenna(self):
