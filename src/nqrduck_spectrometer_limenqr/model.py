@@ -1,7 +1,7 @@
 import logging
 from nqrduck.module.module_model import ModuleModel
 from nqrduck_spectrometer.base_spectrometer_model import BaseSpectrometerModel
-from nqrduck_spectrometer.pulseparameters import Gate, TXPulse
+from nqrduck_spectrometer.pulseparameters import Gate, TXPulse, RXReadout
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ class LimeNQRModel(BaseSpectrometerModel):
         self.add_setting("TX Gain", 40, "TX Gain")
         self.add_pulse_parameter_option("TX", TXPulse)
         self.add_pulse_parameter_option("Gate", Gate)
+        self.add_pulse_parameter_option("RX", RXReadout)
 
         try:
             from nqrduck_pulseprogrammer.pulseprogrammer import pulse_programmer
