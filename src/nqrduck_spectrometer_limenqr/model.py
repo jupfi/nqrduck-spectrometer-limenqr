@@ -10,18 +10,42 @@ class LimeNQRModel(BaseSpectrometerModel):
 
     def __init__(self, module) -> None:
         super().__init__(module)
-        self.add_setting("Frequency", 100, "Experiment frequency", "Acquisition") 
+        # Acquisition settings
+        self.add_setting("Frequency", 100e6, "Experiment frequency", "Acquisition")
+        self.target_frequency = 100e6 
         self.add_setting("Averages", 100, "Number of averages", "Acquisition")
         self.add_setting("Sampling Frequency", 30.72e6 , "Sampling frequency", "Acquisition")
         self.add_setting("IF Frequency", 1.2e6, "IF frequency", "Acquisition")
+        self.if_frequency = 1.2e6
+        self.add_setting("Acquisition time", 82e-6, "Acquisition time - this is from the beginning of the pulse sequence", "Acquisition")
+        # Gate Settings
+        self.add_setting("Enable", True, "Enable", "Gate Settings")
+        self.add_setting("Gate padding left", 10, "Gate padding left", "Gate Settings")
+        self.add_setting("Gate padding right", 10, "Gate padding right", "Gate Settings")
+        self.add_setting("Gate shift", 53, "Gate shift", "Gate Settings")
+        # RX/TX settings
         self.add_setting("RX Gain", 55, "RX Gain", "RX/TX Settings")
         self.add_setting("TX Gain", 40, "TX Gain", "RX/TX Settings")
         self.add_setting("RX LPF BW", 30.72e6/2, "RX LPF BW", "RX/TX Settings")
         self.add_setting("TX LPF BW", 130.0e6, "TX LPF BW", "RX/TX Settings")
+        # Calibration settings
+        self.add_setting("TX I DC correction", -45, "TX I DC correction", "Calibration")
+        self.add_setting("TX Q DC correction", 0, "TX Q DC correction", "Calibration")
+        self.add_setting("TX I Gain correction", 2047, "TX I Gain correction", "Calibration")
+        self.add_setting("TX Q Gain correction", 2039, "TX Q Gain correction", "Calibration")
+        self.add_setting("TX phase adjustment", 3, "TX phase adjustment", "Calibration")
+        self.add_setting("RX I DC correction", 0, "TX I DC correction", "Calibration")
+        self.add_setting("RX Q DC correction", 0, "TX Q DC correction", "Calibration")
+        self.add_setting("RX I Gain correction", 2047, "TX I Gain correction", "Calibration")
+        self.add_setting("RX Q Gain correction", 2047, "TX Q Gain correction", "Calibration")
+        self.add_setting("RX phase adjustment", 0, "TX phase adjustment", "Calibration")
+
+        # Pulse parameter options
         self.add_pulse_parameter_option("TX", TXPulse)
         self.add_pulse_parameter_option("Gate", Gate)
         self.add_pulse_parameter_option("RX", RXReadout)
 
+        # Try to load the pulse programmer module
         try:
             from nqrduck_pulseprogrammer.pulseprogrammer import pulse_programmer
             self.pulse_programmer = pulse_programmer
@@ -31,60 +55,19 @@ class LimeNQRModel(BaseSpectrometerModel):
             logger.warning("No pulse programmer found.")
 
     @property
-    def rx_antenna(self):
-        return self._rx_antenna
+    def target_frequency(self):
+        return self._target_frequency
     
-    @rx_antenna.setter
-    def rx_antenna(self, value):
-        self._rx_antenna = value
+    @target_frequency.setter
+    def target_frequency(self, value):
+        self._target_frequency = value
 
     @property
-    def tx_antenna(self):
-        return self._tx_antenna
+    def if_frequency(self):
+        return self._if_frequency
     
-    @tx_antenna.setter
-    def tx_antenna(self, value):
-        self._tx_antenna = value
+    @if_frequency.setter
+    def if_frequency(self, value):
+        self._if_frequency = value
 
-    @property
-    def rx_gain(self):
-        return self._rx_gain
-
-    @rx_gain.setter
-    def rx_gain(self, value):
-        self._rx_gain = value
-
-    @property
-    def tx_gain(self):
-        return self._tx_gain
-    
-    @tx_gain.setter
-    def tx_gain(self, value):
-        self._tx_gain = value
-
-    @property
-    def rx_lpfbw(self):
-        return self._rx_lpfbw
-    
-    @rx_lpfbw.setter
-    def rx_lpfbw(self, value):
-        self._rx_lpfbw = value
-
-    @property
-    def tx_lpfbw(self):
-        return self._tx_lpfbw
-    
-    @tx_lpfbw.setter
-    def tx_lpfbw(self, value):
-        self._tx_lpfbw = value
-
-    # Pulse params
-
-    @property
-    def tx_freq(self):
-        return self._tx_freq
-    
-    @tx_freq.setter
-    def tx_freq(self, value):
-        self._tx_freq = value
 

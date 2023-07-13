@@ -20,3 +20,7 @@ venv/
 
 # Other
 *.DS_Store
+
+# Contrib files without permission
+src/nqrduck_spectrometer_limenqr/contrib/limr.py
+src/nqrduck_spectrometer_limenqr/contrib/pulseN_test_USB.cpp
