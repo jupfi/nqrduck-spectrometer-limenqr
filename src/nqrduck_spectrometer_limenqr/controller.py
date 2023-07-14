@@ -33,18 +33,6 @@ class LimeNQRController(BaseSpectrometerController):
         lime.noi = -1 # No initialisation
         lime.nrp = 1 # Numer of repetitions
 
-        lime.tdi = -45                                         # TX I DC correction
-        lime.tdq = 0                                           # TX Q DC correction
-        lime.tgi = 2047                                        # TX I Gain correction       
-        lime.tgq = 2039                                        # TX Q Gain correction 
-        lime.tpc = 3                                           # TX phase adjustment
-            
-        lime.rgi = 2047
-        lime.rgq = 2047
-        lime.rdi = 0
-        lime.rdq = 0
-        lime.rpc = 0
-
         lime = self.update_settings(lime)
         lime = self.translate_pulse_sequence(lime)
 
@@ -109,32 +97,58 @@ class LimeNQRController(BaseSpectrometerController):
         for category in self.module.model.settings.keys():
             for setting in self.module.model.settings[category]:
                 logger.debug("Setting %s has value %s", setting.name, setting.value)
-                if setting.name == "RX Gain":
-                    lime.rgn = setting.get_setting()
-                elif setting.name == "TX Gain":
-                    lime.tgn = setting.get_setting()
-                elif setting.name == "Averages":
-                    lime.nav = int(setting.get_setting())
-                elif setting.name == "Sampling Frequency":
+                # Acquisiton settings
+                if setting.name == self.module.model.FREQUENCY:
+                    self.module.model.target_frequency = setting.get_setting()
+                elif setting.name == self.module.model.AVERAGES:
+                    lime.nav = setting.get_setting()
+                elif setting.name == self.module.model.SAMPLING_FREQUENCY:
                     lime.sra = setting.get_setting()
-                elif setting.name == "RX LPF BW":
-                    lime.rlp = setting.get_setting()
-                elif setting.name == "TX LPF BW":
-                    lime.tlp = setting.get_setting()
-                elif setting.name == "IF Frequency":
+                # Careful this doesn't only set the IF frequency but the local oscillator frequency
+                elif setting.name == self.module.model.IF_FREQUENCY:
                     lime.lof = self.module.model.target_frequency - setting.get_setting()
-                elif setting.name == "Acquisition time":
-                    lime.tac = 82e-6
-                elif setting.name == "Enable":
-                    lime.t3d[0] = int(setting.value)
-                elif setting.name == "Gate padding left":
-                    lime.t3d[1] = int(setting.get_setting())
-                elif setting.name == "Gate shift":
-                    lime.t3d[2] = int(setting.get_setting())
-                elif setting.name == "Gate padding right":
-                    lime.t3d[3] = int(setting.get_setting())
-                elif setting.name == "Acquisition time":
+                    self.module.model.if_frequency = setting.get_setting()
+                elif setting.name == self.module.model.ACQUISITION_TIME:
                     lime.tac = setting.get_setting()
+                # Gate settings
+                elif setting.name == self.module.model.GATE_ENABLE:
+                    lime.t3d[0] = int(setting.value)
+                elif setting.name == self.module.model.GATE_PADDING_LEFT:
+                    lime.t3d[1] = int(setting.get_setting())
+                elif setting.name == self.module.model.GATE_SHIFT:
+                    lime.t3d[2] = int(setting.get_setting())
+                elif setting.name == self.module.model.GATE_PADDING_RIGHT:
+                    lime.t3d[3] = int(setting.get_setting())
+                # RX/TX settings
+                elif setting.name == self.module.model.TX_GAIN:
+                    lime.tgn = setting.get_setting()
+                elif setting.name == self.module.model.RX_GAIN:
+                    lime.rgn = setting.get_setting()
+                elif setting.name == self.module.model.RX_LPF_BW:
+                    lime.rlp = setting.get_setting()
+                elif setting.name == self.module.model.TX_LPF_BW:
+                    lime.tlp = setting.get_setting()
+                # Calibration settings
+                elif setting.name == self.module.model.TX_I_DC_CORRECTION:
+                    lime.tdi = setting.get_setting()
+                elif setting.name == self.module.model.TX_Q_DC_CORRECTION:
+                    lime.tdq = setting.get_setting()
+                elif setting.name == self.module.model.TX_I_GAIN_CORRECTION:
+                    lime.tgi = setting.get_setting()
+                elif setting.name == self.module.model.TX_Q_GAIN_CORRECTION:
+                    lime.tgq = setting.get_setting()
+                elif setting.name == self.module.model.TX_PHASE_ADJUSTMENT:
+                    lime.tpc = setting.get_setting()
+                elif setting.name == self.module.model.RX_I_DC_CORRECTION:
+                    lime.rdi = setting.get_setting()
+                elif setting.name == self.module.model.RX_Q_DC_CORRECTION:
+                    lime.rdq = setting.get_setting()
+                elif setting.name == self.module.model.RX_I_GAIN_CORRECTION:
+                    lime.rgi = setting.get_setting()
+                elif setting.name == self.module.model.RX_Q_GAIN_CORRECTION:
+                    lime.rgq = setting.get_setting()
+                elif setting.name == self.module.model.RX_PHASE_ADJUSTMENT:
+                    lime.rpc = setting.get_setting()
                 
         return lime
 
