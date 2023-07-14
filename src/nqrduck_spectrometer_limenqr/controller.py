@@ -55,8 +55,11 @@ class LimeNQRController(BaseSpectrometerController):
         logger.debug("Reading hdf file")
         lime.readHDF()
 
+        rx_begin, rx_stop = self.translate_rx_event(lime)
+        logger.debug("RX event starts at: %s and ends at: %s", rx_begin, rx_stop)
+
         #evaluation range, defines: blanking time and window length
-        evran = [13, 55]
+        evran = [rx_begin, rx_stop]
         
         #np.where sometimes does not work out, so it is put in a try except
         #always check the console for errors
@@ -153,7 +156,15 @@ class LimeNQRController(BaseSpectrometerController):
         return lime
 
     def translate_pulse_sequence(self, lime):
-        """This method translates the pulse sequence into the format required by the lime spectrometer.
+        """This method sets the parameters of the limr object according to the pulse sequence set in the pulse programmer module#
+        This is only relevant for the tx pulse parameters. General settings are set in the update_settings method and the rx event is 
+        handled in the translate_rx_event method.
+
+        Args:
+            lime (limr): The limr object that is used to communicate with the pulseN driver
+        
+        Returns:
+            limr: The updated limr object
         """
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
 
@@ -162,7 +173,7 @@ class LimeNQRController(BaseSpectrometerController):
             for parameter in event.parameters.values():
                 logger.debug("Parameter %s has options: %s", parameter.name, parameter.options)
             
-                if parameter.name == "TX" and parameter.options["TX Amplitude"].value > 0:
+                if parameter.name == self.module.model.TX and parameter.options["TX Amplitude"].value > 0:
                     
                     if len(lime.pfr) == 0:
                         # Add the TX pulse to the pulse frequency list (lime.pfr)
@@ -173,7 +184,7 @@ class LimeNQRController(BaseSpectrometerController):
                         lime.pam = [float(parameter.options["TX Amplitude"].value)]
                         # Add the pulse offset to the pulse offset list (lime.pof)
                         # This leads to a default offset of 300 samples for the first pulse
-                        lime.pof = [300]
+                        lime.pof = [self.module.model.OFFSET_FIRST_PULSE]
                         # Add the TX pulse phase to the pulse phase list (lime.pph) -> not yet implemented
                     else:
                         logger.debug("Adding TX pulse to existing pulse sequence")
@@ -191,9 +202,9 @@ class LimeNQRController(BaseSpectrometerController):
                         for prev_event in previous_events[::-1]:
                             logger.debug("Previous event: %s with duration: %s", prev_event.name, prev_event.duration)
                             for parameter in prev_event.parameters.values():
-                                if parameter.name == "TX" and parameter.options["TX Amplitude"].value == 0:
+                                if parameter.name == self.module.model.TX and parameter.options["TX Amplitude"].value == 0:
                                     blank.append(float(prev_event.duration))
-                                elif parameter.name == "TX" and parameter.options["TX Amplitude"].value > 0:
+                                elif parameter.name == self.module.model.TX and parameter.options["TX Amplitude"].value > 0:
                                     break
                             else:
                                 continue
@@ -212,4 +223,28 @@ class LimeNQRController(BaseSpectrometerController):
         
         lime.npu = len(lime.pfr)
         return lime
+    
+    def translate_rx_event(self, lime):
+        # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
+        CORRECTION_FACTOR = 2.2e-6  
+        events = self.module.model.pulse_programmer.model.pulse_sequence.events
+
+        for event in events:
+            logger.debug("Event %s has parameters: %s", event.name, event.parameters)
+            for parameter in event.parameters.values():
+                logger.debug("Parameter %s has options: %s", parameter.name, parameter.options)
+            
+                if parameter.name == self.module.model.RX and parameter.options['RX'].state:
+                    # Get the length of all previous events
+                    previous_events = events[:events.index(event)]
+                    previous_events_duration = sum([event.duration for event in previous_events])
+                    # Get the offset of the first pulse
+                    offset = self.module.model.OFFSET_FIRST_PULSE * (1/lime.sra)
+                    rx_duration = event.duration
+        
+        rx_begin = previous_events_duration + offset + CORRECTION_FACTOR
+        rx_stop = rx_begin + rx_duration
+
+        return rx_begin * 1e6, rx_stop * 1e6
+                    
         

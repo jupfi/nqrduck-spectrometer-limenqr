@@ -33,6 +33,14 @@ class LimeNQRModel(BaseSpectrometerModel):
     RX_Q_GAIN_CORRECTION = "RX Q Gain correction"
     RX_PHASE_ADJUSTMENT = "RX phase adjustment"
 
+    # Pulse parameter constants
+    TX = "TX"
+    RX = "RX"
+
+    # Settings that are not changed by the user
+    OFFSET_FIRST_PULSE = 300
+    
+
     def __init__(self, module) -> None:
         super().__init__(module)
         # Acquisition settings
@@ -66,9 +74,9 @@ class LimeNQRModel(BaseSpectrometerModel):
         self.add_setting(self.RX_PHASE_ADJUSTMENT, 0, "TX phase adjustment", "Calibration")
 
         # Pulse parameter options
-        self.add_pulse_parameter_option("TX", TXPulse)
-        # self.add_pulse_parameter_option("Gate", Gate)
-        self.add_pulse_parameter_option("RX", RXReadout)
+        self.add_pulse_parameter_option(self.TX, TXPulse)
+        # self.add_pulse_parameter_option(self.GATE, Gate)
+        self.add_pulse_parameter_option(self.RX, RXReadout)
 
         # Try to load the pulse programmer module
         try:
