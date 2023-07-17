@@ -81,7 +81,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         # Emit the data to the nqrduck core
         logger.debug("Emitting measurement data")
-        self.module.nqrduck_signal.emit("single_measurement", measurement_data)
+        self.module.nqrduck_signal.emit("measurement_data", measurement_data)
 
     def update_settings(self, lime):
         logger.debug(
@@ -242,7 +242,8 @@ class LimeNQRController(BaseSpectrometerController):
         CORRECTION_FACTOR = 2.2e-6
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
 
-        previous_events_duration = []
+        previous_events_duration = 0
+        offset = 0
         for event in events:
             logger.debug("Event %s has parameters: %s", event.name, event.parameters)
             for parameter in event.parameters.values():
