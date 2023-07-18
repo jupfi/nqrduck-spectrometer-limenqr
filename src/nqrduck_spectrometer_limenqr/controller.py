@@ -71,13 +71,14 @@ class LimeNQRController(BaseSpectrometerController):
             evidx = np.where((lime.HDF.tdx > evran[0]) & (lime.HDF.tdx < evran[1]))[0]
         except:
             logger.error("Error while reading the measurement data")
+            self.module.nqrduck_signal.emit("measurement_error", "Error")
             return -1
 
         # time domain x and y data
-        tdx = lime.HDF.tdx[evidx]
+        tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
         tdy = lime.HDF.tdy[evidx] / lime.nav
 
-        measurement_data = Measurement(tdx, tdy, self.module.model.target_frequency)
+        measurement_data = Measurement(tdx, tdy, self.module.model.target_frequency, frequency_shift=self.module.model.if_frequency)
 
         # Emit the data to the nqrduck core
         logger.debug("Emitting measurement data")
@@ -244,6 +245,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         previous_events_duration = 0
         offset = 0
+        rx_duration = 0
         for event in events:
             logger.debug("Event %s has parameters: %s", event.name, event.parameters)
             for parameter in event.parameters.values():
@@ -265,6 +267,8 @@ class LimeNQRController(BaseSpectrometerController):
                     rx_duration = event.duration
 
         rx_begin = previous_events_duration + offset + CORRECTION_FACTOR
-        rx_stop = rx_begin + rx_duration
-
-        return rx_begin * 1e6, rx_stop * 1e6
+        if rx_duration:
+            rx_stop = rx_begin + rx_duration
+            return rx_begin * 1e6, rx_stop * 1e6
+        
+        else: return None, None
