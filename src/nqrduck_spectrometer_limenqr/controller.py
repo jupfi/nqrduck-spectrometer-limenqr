@@ -53,6 +53,9 @@ class LimeNQRController(BaseSpectrometerController):
         lime.spt = path
         lime.fpa = "temp"
 
+        # Write to statusbar
+        self.module.nqrduck_signal.emit("statusbar_message", "Started Measurement")
+
         logger.debug("Starting measurement")
         lime.run()
 
@@ -82,6 +85,8 @@ class LimeNQRController(BaseSpectrometerController):
 
         # Emit the data to the nqrduck core
         logger.debug("Emitting measurement data")
+        self.module.nqrduck_signal.emit("statusbar_message", "Finished Measurement")
+
         self.module.nqrduck_signal.emit("measurement_data", measurement_data)
 
     def update_settings(self, lime):
