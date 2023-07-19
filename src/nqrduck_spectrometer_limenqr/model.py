@@ -6,11 +6,8 @@ from nqrduck_spectrometer.pulseparameters import Gate, TXPulse, RXReadout
 logger = logging.getLogger(__name__)
 
 
-class LimeNQRModel(BaseSpectrometerModel):
-    
+class LimeNQRModel(BaseSpectrometerModel):    
     # Setting constants for the names of the spectrometer settings
-    FREQUENCY = "Frequency"
-    AVERAGES = "Averages"
     SAMPLING_FREQUENCY = "Sampling Frequency"
     IF_FREQUENCY = "IF Frequency"
     ACQUISITION_TIME = "Acquisition time"
@@ -33,6 +30,12 @@ class LimeNQRModel(BaseSpectrometerModel):
     RX_Q_GAIN_CORRECTION = "RX Q Gain correction"
     RX_PHASE_ADJUSTMENT = "RX phase adjustment"
 
+    # Constants for the Categories of the settings
+    ACQUISITION = "Acquisition"
+    GATE_SETTINGS = "Gate Settings"
+    RX_TX_SETTINGS = "RX/TX Settings"
+    CALIBRATION = "Calibration"
+
     # Pulse parameter constants
     TX = "TX"
     RX = "RX"
@@ -44,34 +47,31 @@ class LimeNQRModel(BaseSpectrometerModel):
     def __init__(self, module) -> None:
         super().__init__(module)
         # Acquisition settings
-        self.add_setting(self.FREQUENCY, 100e6, "Experiment frequency", "Acquisition")
-        self.target_frequency = 100e6 
-        self.add_setting(self.AVERAGES, 100, "Number of averages", "Acquisition")
-        self.add_setting(self.SAMPLING_FREQUENCY, 30.72e6 , "Sampling frequency", "Acquisition")
-        self.add_setting(self.IF_FREQUENCY, 1.2e6, "IF Frequency", "Acquisition")
+        self.add_setting(self.SAMPLING_FREQUENCY, 30.72e6 , "Sampling frequency", self.ACQUISITION)
+        self.add_setting(self.IF_FREQUENCY, 1.2e6, "IF Frequency", self.ACQUISITION)
         self.if_frequency = 1.2e6
-        self.add_setting(self.ACQUISITION_TIME, 82e-6, "Acquisition time - this is from the beginning of the pulse sequence", "Acquisition")
+        self.add_setting(self.ACQUISITION_TIME, 82e-6, "Acquisition time - this is from the beginning of the pulse sequence", self.ACQUISITION)
         # Gate Settings
-        self.add_setting(self.GATE_ENABLE, True, "Enable", "Gate Settings")
-        self.add_setting(self.GATE_PADDING_LEFT, 10, "Gate padding left", "Gate Settings")
-        self.add_setting(self.GATE_PADDING_RIGHT, 10, "Gate padding right", "Gate Settings")
-        self.add_setting(self.GATE_SHIFT, 53, "Gate shift", "Gate Settings")
+        self.add_setting(self.GATE_ENABLE, True, "Enable", self.GATE_SETTINGS)
+        self.add_setting(self.GATE_PADDING_LEFT, 10, "Gate padding left", self.GATE_SETTINGS)
+        self.add_setting(self.GATE_PADDING_RIGHT, 10, "Gate padding right", self.GATE_SETTINGS)
+        self.add_setting(self.GATE_SHIFT, 53, "Gate shift", self.GATE_SETTINGS)
         # RX/TX settings
-        self.add_setting(self.RX_GAIN, 55, "RX Gain", "RX/TX Settings")
-        self.add_setting(self.TX_GAIN, 40, "TX Gain", "RX/TX Settings")
-        self.add_setting(self.RX_LPF_BW, 30.72e6/2, "RX LPF BW", "RX/TX Settings")
-        self.add_setting(self.TX_LPF_BW, 130.0e6, "TX LPF BW", "RX/TX Settings")
+        self.add_setting(self.RX_GAIN, 55, "RX Gain", self.RX_TX_SETTINGS)
+        self.add_setting(self.TX_GAIN, 40, "TX Gain", self.RX_TX_SETTINGS)
+        self.add_setting(self.RX_LPF_BW, 30.72e6/2, "RX LPF BW", self.RX_TX_SETTINGS)
+        self.add_setting(self.TX_LPF_BW, 130.0e6, "TX LPF BW", self.RX_TX_SETTINGS)
         # Calibration settings
-        self.add_setting(self.TX_I_DC_CORRECTION, -45, "TX I DC correction", "Calibration")
-        self.add_setting(self.TX_Q_DC_CORRECTION, 0, "TX Q DC correction", "Calibration")
-        self.add_setting(self.TX_I_GAIN_CORRECTION, 2047, "TX I Gain correction", "Calibration")
-        self.add_setting(self.TX_Q_GAIN_CORRECTION, 2039, "TX Q Gain correction", "Calibration")
-        self.add_setting(self.TX_PHASE_ADJUSTMENT, 3, "TX phase adjustment", "Calibration")
-        self.add_setting(self.RX_I_DC_CORRECTION, 0, "RX I DC correction", "Calibration")
-        self.add_setting(self.RX_Q_DC_CORRECTION, 0, "RX Q DC correction", "Calibration")
-        self.add_setting(self.RX_I_GAIN_CORRECTION, 2047, "RX I Gain correction", "Calibration")
-        self.add_setting(self.RX_Q_DC_CORRECTION, 2047, "TX Q Gain correction", "Calibration")
-        self.add_setting(self.RX_PHASE_ADJUSTMENT, 0, "TX phase adjustment", "Calibration")
+        self.add_setting(self.TX_I_DC_CORRECTION, -45, "TX I DC correction", self.CALIBRATION)
+        self.add_setting(self.TX_Q_DC_CORRECTION, 0, "TX Q DC correction", self.CALIBRATION)
+        self.add_setting(self.TX_I_GAIN_CORRECTION, 2047, "TX I Gain correction", self.CALIBRATION)
+        self.add_setting(self.TX_Q_GAIN_CORRECTION, 2039, "TX Q Gain correction", self.CALIBRATION)
+        self.add_setting(self.TX_PHASE_ADJUSTMENT, 3, "TX phase adjustment", self.CALIBRATION)
+        self.add_setting(self.RX_I_DC_CORRECTION, 0, "RX I DC correction", self.CALIBRATION)
+        self.add_setting(self.RX_Q_DC_CORRECTION, 0, "RX Q DC correction", self.CALIBRATION)
+        self.add_setting(self.RX_I_GAIN_CORRECTION, 2047, "RX I Gain correction", self.CALIBRATION)
+        self.add_setting(self.RX_Q_DC_CORRECTION, 2047, "TX Q Gain correction", self.CALIBRATION)
+        self.add_setting(self.RX_PHASE_ADJUSTMENT, 0, "TX phase adjustment", self.CALIBRATION)
 
         # Pulse parameter options
         self.add_pulse_parameter_option(self.TX, TXPulse)
@@ -94,6 +94,14 @@ class LimeNQRModel(BaseSpectrometerModel):
     @target_frequency.setter
     def target_frequency(self, value):
         self._target_frequency = value
+
+    @property
+    def averages(self):
+        return self._averages
+    
+    @averages.setter
+    def averages(self, value):
+        self._averages = value
 
     @property
     def if_frequency(self):

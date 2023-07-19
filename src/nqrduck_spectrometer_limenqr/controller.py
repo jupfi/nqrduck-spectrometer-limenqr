@@ -39,6 +39,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         lime = self.update_settings(lime)
         lime = self.translate_pulse_sequence(lime)
+        lime.nav = self.module.model.averages
 
         for key in sorted(lime.parsinp):
             val = getattr(lime, key)
@@ -99,11 +100,7 @@ class LimeNQRController(BaseSpectrometerController):
             for setting in self.module.model.settings[category]:
                 logger.debug("Setting %s has value %s", setting.name, setting.value)
                 # Acquisiton settings
-                if setting.name == self.module.model.FREQUENCY:
-                    self.module.model.target_frequency = setting.get_setting()
-                elif setting.name == self.module.model.AVERAGES:
-                    lime.nav = setting.get_setting()
-                elif setting.name == self.module.model.SAMPLING_FREQUENCY:
+                if setting.name == self.module.model.SAMPLING_FREQUENCY:
                     lime.sra = setting.get_setting()
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
@@ -277,3 +274,23 @@ class LimeNQRController(BaseSpectrometerController):
             return rx_begin * 1e6, rx_stop * 1e6
         
         else: return None, None
+
+    def set_frequency(self, value):
+        logger.debug("Setting frequency to: %s", value)
+        try:
+            self.module.model.target_frequency = float(value)
+            logger.debug("Successfully set frequency to: %s", value)
+        except ValueError:
+            logger.warning("Could not set frequency to: %s", value)
+            self.module.nqrduck_signal.emit("notification", ["Error", "Could not set frequency to: " + value])
+            self.module.nqrduck_signal.emit("failure", ["set_frequency", value])
+
+    def set_averages(self, value):
+        logger.debug("Setting averages to: %s", value)
+        try:
+            self.module.model.averages = int(value)
+            logger.debug("Successfully set averages to: %s", value)
+        except ValueError:
+            logger.warning("Could not set averages to: %s", value)
+            self.module.nqrduck_signal.emit("notification", ["Error", "Could not set averages to: " + value])
+            self.module.nqrduck_signal.emit("failure", ["set_averages", value])
