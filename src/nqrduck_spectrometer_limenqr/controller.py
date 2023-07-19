@@ -283,7 +283,7 @@ class LimeNQRController(BaseSpectrometerController):
         except ValueError:
             logger.warning("Could not set frequency to: %s", value)
             self.module.nqrduck_signal.emit("notification", ["Error", "Could not set frequency to: " + value])
-            self.module.nqrduck_signal.emit("failure", ["set_frequency", value])
+            self.module.nqrduck_signal.emit("failure_set_frequency", value)
 
     def set_averages(self, value):
         logger.debug("Setting averages to: %s", value)
@@ -293,4 +293,4 @@ class LimeNQRController(BaseSpectrometerController):
         except ValueError:
             logger.warning("Could not set averages to: %s", value)
             self.module.nqrduck_signal.emit("notification", ["Error", "Could not set averages to: " + value])
-            self.module.nqrduck_signal.emit("failure", ["set_averages", value])
+            self.module.nqrduck_signal.emit("failure_set_averages", value)
