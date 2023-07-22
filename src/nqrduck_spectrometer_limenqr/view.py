@@ -1,4 +1,3 @@
-from PyQt6.QtWidgets import QWidget
 from nqrduck_spectrometer.base_spectrometer_view import BaseSpectrometerView
 
 

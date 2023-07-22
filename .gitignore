@@ -25,3 +25,5 @@ venv/
 src/nqrduck_spectrometer_limenqr/contrib/limr.py
 src/nqrduck_spectrometer_limenqr/contrib/pulseN_test_USB.cpp
 src/nqrduck_spectrometer_limenqr/contrib/pulseN_test_USB
+src/nqrduck_spectrometer_limenqr/contrib/pulseN_test_USB_TX2
+src/nqrduck_spectrometer_limenqr/contrib/pulseN_test_USB_TX2.cpp

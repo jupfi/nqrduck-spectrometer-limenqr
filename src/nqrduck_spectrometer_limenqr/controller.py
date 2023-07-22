@@ -1,7 +1,5 @@
 import logging
 import tempfile
-from scipy.fftpack import fft, fftshift, fftfreq
-import matplotlib.pyplot as plt
 from pathlib import Path
 import numpy as np
 from nqrduck.module.module_controller import ModuleController
@@ -27,7 +25,7 @@ class LimeNQRController(BaseSpectrometerController):
             from .contrib.limr import limr
 
             self_path = Path(__file__).parent
-            driver_path = str(self_path / "contrib/pulseN_test_USB.cpp")
+            driver_path = str(self_path / "contrib/pulseN_test_USB_TX2.cpp")
             lime = limr(driver_path)
         except ImportError as e:
             logger.error("Error while importing limr. %s", e)
@@ -91,6 +89,14 @@ class LimeNQRController(BaseSpectrometerController):
         self.module.nqrduck_signal.emit("measurement_data", measurement_data)
 
     def update_settings(self, lime):
+        """This method sets the parameters of the limr object according to the settings set in the spectrometer module.
+        
+        Args:
+            lime (limr): The limr object that is used to communicate with the pulseN driver
+            
+        Returns:
+            limr: The updated limr object"""
+        
         logger.debug(
             "Updating settings for spectrometer: %s for measurement",
             self.module.model.name,
@@ -241,6 +247,14 @@ class LimeNQRController(BaseSpectrometerController):
         return lime
 
     def translate_rx_event(self, lime):
+        """This method translates the RX event of the pulse sequence to the limr object.
+        
+        Args:
+            lime (limr): The limr object that is used to communicate with the pulseN driver
+            
+            
+        Returns:
+            tuple: A tuple containing the start and stop time of the RX event in µs"""
         # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
         CORRECTION_FACTOR = 2.2e-6
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
@@ -257,7 +271,7 @@ class LimeNQRController(BaseSpectrometerController):
 
                 if (
                     parameter.name == self.module.model.RX
-                    and parameter.options["RX"].state
+                    and parameter.options["RX"].value
                 ):
                     # Get the length of all previous events
                     previous_events = events[: events.index(event)]
@@ -275,7 +289,12 @@ class LimeNQRController(BaseSpectrometerController):
         
         else: return None, None
 
-    def set_frequency(self, value):
+    def set_frequency(self, value : float):
+        """This method sets the target frequency of the spectrometer.
+        
+        Args:
+            value (float): The target frequency in MHz
+        """
         logger.debug("Setting frequency to: %s", value)
         try:
             self.module.model.target_frequency = float(value)
@@ -285,7 +304,11 @@ class LimeNQRController(BaseSpectrometerController):
             self.module.nqrduck_signal.emit("notification", ["Error", "Could not set frequency to: " + value])
             self.module.nqrduck_signal.emit("failure_set_frequency", value)
 
-    def set_averages(self, value):
+    def set_averages(self, value : int):
+        """This method sets the number of averages for the spectrometer.
+        
+        Args:
+            value (int): The number of averages"""
         logger.debug("Setting averages to: %s", value)
         try:
             self.module.model.averages = int(value)
