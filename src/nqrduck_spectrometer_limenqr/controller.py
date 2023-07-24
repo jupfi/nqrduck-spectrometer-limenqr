@@ -5,6 +5,7 @@ import numpy as np
 from nqrduck.module.module_controller import ModuleController
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
+from nqrduck_spectrometer.pulseparameters import TXPulse, RXReadout
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class LimeNQRController(BaseSpectrometerController):
         )
         # Now we request the pulse sequence set in the pulse programmer module
         pulse_sequence = self.module.model.pulse_programmer.model.pulse_sequence
-        logger.debug("Pulse sequence is: %s", pulse_sequence.dump_sequence_data())
+        logger.debug("Pulse sequence is: %s", pulse_sequence.to_json())
 
         try:
             from .contrib.limr import limr
@@ -80,7 +81,12 @@ class LimeNQRController(BaseSpectrometerController):
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
         tdy = lime.HDF.tdy[evidx] / lime.nav
 
-        measurement_data = Measurement(tdx, tdy, self.module.model.target_frequency, frequency_shift=self.module.model.if_frequency)
+        measurement_data = Measurement(
+            tdx,
+            tdy,
+            self.module.model.target_frequency,
+            frequency_shift=self.module.model.if_frequency,
+        )
 
         # Emit the data to the nqrduck core
         logger.debug("Emitting measurement data")
@@ -90,13 +96,13 @@ class LimeNQRController(BaseSpectrometerController):
 
     def update_settings(self, lime):
         """This method sets the parameters of the limr object according to the settings set in the spectrometer module.
-        
+
         Args:
             lime (limr): The limr object that is used to communicate with the pulseN driver
-            
+
         Returns:
             limr: The updated limr object"""
-        
+
         logger.debug(
             "Updating settings for spectrometer: %s for measurement",
             self.module.model.name,
@@ -180,18 +186,34 @@ class LimeNQRController(BaseSpectrometerController):
 
                 if (
                     parameter.name == self.module.model.TX
-                    and parameter.options["TX Amplitude"].value > 0
+                    and parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
+                    > 0
                 ):
+                    pulse_shape = parameter.get_option_by_name(
+                        TXPulse.TX_PULSE_SHAPE
+                    ).value
+                    pulse_amplitude = abs(pulse_shape.get_pulse_amplitude(event.duration))
+                    pulse_amplitude /= np.max(pulse_amplitude)
                     if len(lime.pfr) == 0:
                         # Add the TX pulse to the pulse frequency list (lime.pfr)
-                        lime.pfr = [float(self.module.model.if_frequency)]
+                        lime.pfr = [
+                            float(self.module.model.if_frequency)
+                            for i in range(len(pulse_amplitude))
+                        ]
                         # Add the duration of the TX pulse to the pulse duration list (lime.pdr)
-                        lime.pdr = [float(event.duration)]
+                        lime.pdr = [
+                            float(pulse_shape.resolution)
+                            for i in range(len(pulse_amplitude))
+                        ]
                         # Add the TX pulse amplitude to the pulse amplitude list (lime.pam)
-                        lime.pam = [float(parameter.options["TX Amplitude"].value)]
+                        lime.pam = list(pulse_amplitude)
                         # Add the pulse offset to the pulse offset list (lime.pof)
                         # This leads to a default offset of 300 samples for the first pulse
                         lime.pof = [self.module.model.OFFSET_FIRST_PULSE]
+                        lime.pof += [
+                            int(pulse_shape.resolution * lime.sra)
+                            for i in range(len(pulse_amplitude) -1)
+                        ]
                         # Add the TX pulse phase to the pulse phase list (lime.pph) -> not yet implemented
                     else:
                         logger.debug("Adding TX pulse to existing pulse sequence")
@@ -199,14 +221,21 @@ class LimeNQRController(BaseSpectrometerController):
                             "Setting if frequency to: %s",
                             self.module.model.if_frequency,
                         )
-                        lime.pfr.append(float(self.module.model.if_frequency))
-                        logger.debug("Setting pulse duration to: %s", event.duration)
-                        lime.pdr.append(float(event.duration))
-                        logger.debug(
-                            "Setting pulse amplitude to: %s",
-                            parameter.options["TX Amplitude"].value,
+                        lime.pfr.append(
+                            [
+                                float(self.module.model.if_frequency)
+                                for i in range(len(pulse_amplitude))
+                            ]
                         )
-                        lime.pam.append(float(parameter.options["TX Amplitude"].value))
+                        logger.debug("Setting pulse duration to: %s", event.duration)
+                        lime.pdr.append(
+                            [
+                                float(pulse_shape.resolution)
+                                for i in range(len(pulse_amplitude))
+                            ]
+                        )
+                        # Setting pulse amplitude
+                        lime.pam.append(list(pulse_amplitude))
                         # Get the length of the previous event without a tx pulse
                         blank = []
                         previous_events = events[: events.index(event)]
@@ -218,15 +247,21 @@ class LimeNQRController(BaseSpectrometerController):
                                 prev_event.name,
                                 prev_event.duration,
                             )
-                            for parameter in prev_event.parameters.values():
+                            for parameter in prev_event.parameters:
                                 if (
                                     parameter.name == self.module.model.TX
-                                    and parameter.options["TX Amplitude"].value == 0
+                                    and parameter.get_option_by_name(
+                                        TXPulse.RELATIVE_AMPLITUDE
+                                    ).value
+                                    == 0
                                 ):
                                     blank.append(float(prev_event.duration))
                                 elif (
                                     parameter.name == self.module.model.TX
-                                    and parameter.options["TX Amplitude"].value > 0
+                                    and parameter.get_option_by_name(
+                                        TXPulse.RELATIVE_AMPLITUDE
+                                    ).value
+                                    > 0
                                 ):
                                     break
                             else:
@@ -239,6 +274,10 @@ class LimeNQRController(BaseSpectrometerController):
 
                         logger.debug("Setting pulse offset to: %s", prev_duration)
                         lime.pof.append(np.ceil(prev_duration * lime.sra))
+                        lime.pof.append += [
+                            int(pulse_shape.resolution * lime.sra)
+                            for i in range(len(pulse_amplitude))
+                        ]
 
             # The last event is the repetition time event
             lime.trp = float(event.duration)
@@ -248,11 +287,11 @@ class LimeNQRController(BaseSpectrometerController):
 
     def translate_rx_event(self, lime):
         """This method translates the RX event of the pulse sequence to the limr object.
-        
+
         Args:
             lime (limr): The limr object that is used to communicate with the pulseN driver
-            
-            
+
+
         Returns:
             tuple: A tuple containing the start and stop time of the RX event in µs"""
         # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
@@ -271,7 +310,7 @@ class LimeNQRController(BaseSpectrometerController):
 
                 if (
                     parameter.name == self.module.model.RX
-                    and parameter.options["RX"].value
+                    and parameter.get_option_by_name(RXReadout.RX).value
                 ):
                     # Get the length of all previous events
                     previous_events = events[: events.index(event)]
@@ -286,12 +325,13 @@ class LimeNQRController(BaseSpectrometerController):
         if rx_duration:
             rx_stop = rx_begin + rx_duration
             return rx_begin * 1e6, rx_stop * 1e6
-        
-        else: return None, None
 
-    def set_frequency(self, value : float):
+        else:
+            return None, None
+
+    def set_frequency(self, value: float):
         """This method sets the target frequency of the spectrometer.
-        
+
         Args:
             value (float): The target frequency in MHz
         """
@@ -301,12 +341,14 @@ class LimeNQRController(BaseSpectrometerController):
             logger.debug("Successfully set frequency to: %s", value)
         except ValueError:
             logger.warning("Could not set frequency to: %s", value)
-            self.module.nqrduck_signal.emit("notification", ["Error", "Could not set frequency to: " + value])
+            self.module.nqrduck_signal.emit(
+                "notification", ["Error", "Could not set frequency to: " + value]
+            )
             self.module.nqrduck_signal.emit("failure_set_frequency", value)
 
-    def set_averages(self, value : int):
+    def set_averages(self, value: int):
         """This method sets the number of averages for the spectrometer.
-        
+
         Args:
             value (int): The number of averages"""
         logger.debug("Setting averages to: %s", value)
@@ -315,5 +357,7 @@ class LimeNQRController(BaseSpectrometerController):
             logger.debug("Successfully set averages to: %s", value)
         except ValueError:
             logger.warning("Could not set averages to: %s", value)
-            self.module.nqrduck_signal.emit("notification", ["Error", "Could not set averages to: " + value])
+            self.module.nqrduck_signal.emit(
+                "notification", ["Error", "Could not set averages to: " + value]
+            )
             self.module.nqrduck_signal.emit("failure_set_averages", value)
