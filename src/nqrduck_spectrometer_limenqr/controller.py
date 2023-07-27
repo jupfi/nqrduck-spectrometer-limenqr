@@ -26,7 +26,7 @@ class LimeNQRController(BaseSpectrometerController):
             from .contrib.limr import limr
 
             self_path = Path(__file__).parent
-            driver_path = str(self_path / "contrib/pulseN_test_USB_TX2.cpp")
+            driver_path = str(self_path / "contrib/pulseN_test_USB.cpp")
             lime = limr(driver_path)
         except ImportError as e:
             logger.error("Error while importing limr. %s", e)
@@ -79,13 +79,13 @@ class LimeNQRController(BaseSpectrometerController):
 
         # time domain x and y data
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
-        tdy = lime.HDF.tdy[evidx] / lime.nav
+        tdy = np.abs(lime.HDF.tdy[evidx] / lime.nav)
 
         measurement_data = Measurement(
             tdx,
             tdy,
             self.module.model.target_frequency,
-            frequency_shift=self.module.model.if_frequency,
+            #frequency_shift=self.module.model.if_frequency,
         )
 
         # Emit the data to the nqrduck core
