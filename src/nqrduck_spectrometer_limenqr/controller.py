@@ -2,6 +2,7 @@ import logging
 import tempfile
 from pathlib import Path
 import numpy as np
+from decimal import Decimal
 from nqrduck.module.module_controller import ModuleController
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
@@ -26,7 +27,7 @@ class LimeNQRController(BaseSpectrometerController):
             from .contrib.limr import limr
 
             self_path = Path(__file__).parent
-            driver_path = str(self_path / "contrib/pulseN_test_USB_TX2.cpp")
+            driver_path = str(self_path / "contrib/pulseN_test_USB.cpp")
             lime = limr(driver_path)
         except ImportError as e:
             logger.error("Error while importing limr. %s", e)
@@ -79,7 +80,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         # time domain x and y data
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
-        tdy = lime.HDF.tdy[evidx] / lime.nav
+        tdy = np.abs(lime.HDF.tdy[evidx] / lime.nav)
 
         measurement_data = Measurement(
             tdx,
@@ -211,31 +212,24 @@ class LimeNQRController(BaseSpectrometerController):
                         # This leads to a default offset of 300 samples for the first pulse
                         lime.pof = [self.module.model.OFFSET_FIRST_PULSE]
                         lime.pof += [
-                            int(pulse_shape.resolution * lime.sra)
+                            int(pulse_shape.resolution * Decimal(lime.sra))
                             for i in range(len(pulse_amplitude) -1)
                         ]
                         # Add the TX pulse phase to the pulse phase list (lime.pph) -> not yet implemented
                     else:
                         logger.debug("Adding TX pulse to existing pulse sequence")
-                        logger.debug(
-                            "Setting if frequency to: %s",
-                            self.module.model.if_frequency,
-                        )
-                        lime.pfr.append(
-                            [
+                        lime.pfr += [
                                 float(self.module.model.if_frequency)
                                 for i in range(len(pulse_amplitude))
-                            ]
-                        )
-                        logger.debug("Setting pulse duration to: %s", event.duration)
-                        lime.pdr.append(
-                            [
+                        ]
+    
+                        lime.pdr += [
                                 float(pulse_shape.resolution)
                                 for i in range(len(pulse_amplitude))
-                            ]
-                        )
+                        ]
+        
                         # Setting pulse amplitude
-                        lime.pam.append(list(pulse_amplitude))
+                        lime.pam += list(pulse_amplitude)
                         # Get the length of the previous event without a tx pulse
                         blank = []
                         previous_events = events[: events.index(event)]
@@ -247,7 +241,7 @@ class LimeNQRController(BaseSpectrometerController):
                                 prev_event.name,
                                 prev_event.duration,
                             )
-                            for parameter in prev_event.parameters:
+                            for parameter in prev_event.parameters.values():
                                 if (
                                     parameter.name == self.module.model.TX
                                     and parameter.get_option_by_name(
@@ -273,10 +267,10 @@ class LimeNQRController(BaseSpectrometerController):
                         prev_duration = lime.pdr[-2] + sum(blank)
 
                         logger.debug("Setting pulse offset to: %s", prev_duration)
-                        lime.pof.append(np.ceil(prev_duration * lime.sra))
-                        lime.pof.append += [
-                            int(pulse_shape.resolution * lime.sra)
-                            for i in range(len(pulse_amplitude))
+                        lime.pof.append(int(np.ceil(prev_duration * lime.sra)))
+                        lime.pof += [
+                            int(float(pulse_shape.resolution) * lime.sra)
+                            for i in range(len(pulse_amplitude) - 1)
                         ]
 
             # The last event is the repetition time event
@@ -323,7 +317,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         rx_begin = previous_events_duration + offset + CORRECTION_FACTOR
         if rx_duration:
-            rx_stop = rx_begin + rx_duration
+            rx_stop = rx_begin + float(rx_duration)
             return rx_begin * 1e6, rx_stop * 1e6
 
         else:
