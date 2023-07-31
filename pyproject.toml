@@ -27,7 +27,7 @@ dependencies = [
     "nqrduck-spectrometer",
     "pyqt6",
     "h5py",
-    "serial",
+    "pyserial",
 ]
 
 [project.entry-points."nqrduck"]
