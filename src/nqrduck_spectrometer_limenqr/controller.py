@@ -86,7 +86,7 @@ class LimeNQRController(BaseSpectrometerController):
             tdx,
             tdy,
             self.module.model.target_frequency,
-            frequency_shift=self.module.model.if_frequency,
+            #frequency_shift=self.module.model.if_frequency,
         )
 
         # Emit the data to the nqrduck core
