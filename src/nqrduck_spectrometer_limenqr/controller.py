@@ -203,6 +203,7 @@ class LimeNQRController(BaseSpectrometerController):
                     # Apply the shift by multiplying the time domain signal
                     pulse_amplitude = (pulse_amplitude * shift_signal)
 
+                    # Normalize the pulse amplitude
                     pulse_amplitude /= np.max(pulse_amplitude)
 
                     if len(lime.pfr) == 0:
