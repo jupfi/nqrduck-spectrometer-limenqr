@@ -203,8 +203,14 @@ class LimeNQRController(BaseSpectrometerController):
                     # Apply the shift by multiplying the time domain signal
                     pulse_amplitude = (pulse_amplitude * shift_signal)
 
-                    # Normalize the pulse amplitude
-                    pulse_amplitude /= np.max(pulse_amplitude)
+                    # Apply the relative amplitude
+                    pulse_amplitude *= parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
+
+                    # Clip the pulse amplitude to a minimum and maximum value of -0.99 and 0.99
+                    # this is kind of ugly but it prevents some kind of issue with the pulse clipping
+                    # I'm not sure why this happens but it seems to be related to the pulse shape
+                    # rectangular pulses seem to be the most effected by this
+                    pulse_amplitude = np.clip(pulse_amplitude, -0.99, 0.99)
 
                     if len(lime.pfr) == 0:
                         # Add the TX pulse to the pulse frequency list (lime.pfr)
