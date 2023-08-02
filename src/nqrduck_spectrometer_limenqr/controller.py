@@ -80,7 +80,8 @@ class LimeNQRController(BaseSpectrometerController):
 
         # time domain x and y data
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
-        tdy = np.abs(lime.HDF.tdy[evidx] / lime.nav)
+        tdy = lime.HDF.tdy[evidx] / lime.nav
+        tdy = tdy - np.mean(tdy)
 
         measurement_data = Measurement(
             tdx,
@@ -194,7 +195,16 @@ class LimeNQRController(BaseSpectrometerController):
                         TXPulse.TX_PULSE_SHAPE
                     ).value
                     pulse_amplitude = abs(pulse_shape.get_pulse_amplitude(event.duration))
+                    # We need modulate the pulse amplitude by the IF frequency
+                    # Create the complex exponential to shift the frequency
+                    tdx = np.linspace(0, float(event.duration), int(float(event.duration) * lime.sra))
+                    shift_signal = np.cos(2 * np.pi * self.module.model.if_frequency * tdx)
+
+                    # Apply the shift by multiplying the time domain signal
+                    pulse_amplitude = (pulse_amplitude * shift_signal)
+
                     pulse_amplitude /= np.max(pulse_amplitude)
+
                     if len(lime.pfr) == 0:
                         # Add the TX pulse to the pulse frequency list (lime.pfr)
                         lime.pfr = [
@@ -315,7 +325,7 @@ class LimeNQRController(BaseSpectrometerController):
                     offset = self.module.model.OFFSET_FIRST_PULSE * (1 / lime.sra)
                     rx_duration = event.duration
 
-        rx_begin = previous_events_duration + offset + CORRECTION_FACTOR
+        rx_begin = float(previous_events_duration) + offset + CORRECTION_FACTOR
         if rx_duration:
             rx_stop = rx_begin + float(rx_duration)
             return rx_begin * 1e6, rx_stop * 1e6
