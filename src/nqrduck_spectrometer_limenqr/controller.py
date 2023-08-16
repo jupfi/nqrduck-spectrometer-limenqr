@@ -75,7 +75,7 @@ class LimeNQRController(BaseSpectrometerController):
             evidx = np.where((lime.HDF.tdx > evran[0]) & (lime.HDF.tdx < evran[1]))[0]
         except:
             logger.error("Error while reading the measurement data")
-            self.module.nqrduck_signal.emit("measurement_error", "Error")
+            self.module.nqrduck_signal.emit("measurement_error", "Error with measurement data. Did you set an RX event?")
             return -1
 
         # time domain x and y data
@@ -87,7 +87,7 @@ class LimeNQRController(BaseSpectrometerController):
             tdx,
             tdy,
             self.module.model.target_frequency,
-            #frequency_shift=self.module.model.if_frequency,
+            # frequency_shift=self.module.model.if_frequency,
         )
 
         # Emit the data to the nqrduck core
