@@ -1,7 +1,6 @@
 import logging
-from nqrduck.module.module_model import ModuleModel
 from nqrduck_spectrometer.base_spectrometer_model import BaseSpectrometerModel
-from nqrduck_spectrometer.pulseparameters import Gate, TXPulse, RXReadout
+from nqrduck_spectrometer.pulseparameters import TXPulse, RXReadout
 
 logger = logging.getLogger(__name__)
 
