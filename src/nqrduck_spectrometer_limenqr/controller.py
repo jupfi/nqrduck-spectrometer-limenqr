@@ -39,6 +39,8 @@ class LimeNQRController(BaseSpectrometerController):
 
         lime = self.update_settings(lime)
         lime = self.translate_pulse_sequence(lime)
+        
+
         lime.nav = self.module.model.averages
 
         for key in sorted(lime.parsinp):
@@ -81,7 +83,6 @@ class LimeNQRController(BaseSpectrometerController):
         # time domain x and y data
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
         tdy = lime.HDF.tdy[evidx] / lime.nav
-        tdy = tdy - np.mean(tdy)
 
         measurement_data = Measurement(
             tdx,
@@ -119,7 +120,7 @@ class LimeNQRController(BaseSpectrometerController):
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
                     lime.lof = (
-                        self.module.model.target_frequency - setting.get_setting()
+                        self.module.model.target_frequency
                     )
                     self.module.model.if_frequency = setting.get_setting()
                 elif setting.name == self.module.model.ACQUISITION_TIME:
@@ -195,13 +196,6 @@ class LimeNQRController(BaseSpectrometerController):
                         TXPulse.TX_PULSE_SHAPE
                     ).value
                     pulse_amplitude = abs(pulse_shape.get_pulse_amplitude(event.duration))
-                    # We need modulate the pulse amplitude by the IF frequency
-                    # Create the complex exponential to shift the frequency
-                    tdx = np.linspace(0, float(event.duration), int(float(event.duration) * lime.sra))
-                    shift_signal = np.cos(2 * np.pi * self.module.model.if_frequency * tdx)
-
-                    # Apply the shift by multiplying the time domain signal
-                    pulse_amplitude = (pulse_amplitude * shift_signal)
 
                     # Apply the relative amplitude
                     pulse_amplitude *= parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
@@ -306,7 +300,7 @@ class LimeNQRController(BaseSpectrometerController):
         Returns:
             tuple: A tuple containing the start and stop time of the RX event in µs"""
         # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
-        CORRECTION_FACTOR = 2.2e-6
+        CORRECTION_FACTOR = 2.4e-6
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
 
         previous_events_duration = 0

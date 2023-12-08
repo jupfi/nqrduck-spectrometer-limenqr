@@ -86,6 +86,8 @@ class LimeNQRModel(BaseSpectrometerModel):
         except ImportError:
             logger.warning("No pulse programmer found.")
 
+        self.averages = 1
+
     @property
     def target_frequency(self):
         return self._target_frequency
