@@ -200,6 +200,33 @@ class LimeNQRController(BaseSpectrometerController):
                     # Apply the relative amplitude
                     pulse_amplitude *= parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
 
+                    # Calculate the number of samples
+                    num_samples = int(float(event.duration) * lime.sra)
+
+                    # Create the time vector for the pulse duration
+                    tdx = np.linspace(0, float(event.duration), num_samples, endpoint=False)
+
+                    # Create the full complex exponential for modulation
+                    # This represents a rotating vector (phasor) at your IF
+                    shift_signal = np.exp(1j * 2 * np.pi * self.module.model.if_frequency * tdx)
+
+                    # pulse_amplitude is your desired pulse envelope, defined earlier
+                    # Let's assume that pulse_amplitude is a real-valued vector with values corresponding to the amplitude of each sample
+
+                    # Apply the shift by multiplying with the complex exponential
+                    pulse_complex = pulse_amplitude * shift_signal
+
+                    # Calculate amplitude and phase from the complex signal
+                    modulated_amplitude = np.abs(pulse_complex)
+                    modulated_phase = np.angle(pulse_complex)  # This returns the phase in radians
+
+                    # For SDRs that require phase between 0 and 2*pi
+                    modulated_phase = np.unwrap(modulated_phase)  # To correct discontinuities
+                    modulated_phase = (modulated_phase + 2 * np.pi) % (2 * np.pi)  # Shift to [0, 2*pi] range
+
+                    # Apply the shift by multiplying the time domain signal
+                    pulse_amplitude = (modulated_amplitude)
+
                     # Clip the pulse amplitude to a minimum and maximum value of -0.99 and 0.99
                     # this is kind of ugly but it prevents some kind of issue with the pulse clipping
                     # I'm not sure why this happens but it seems to be related to the pulse shape
@@ -226,6 +253,7 @@ class LimeNQRController(BaseSpectrometerController):
                             int(pulse_shape.resolution * Decimal(lime.sra))
                             for i in range(len(pulse_amplitude) -1)
                         ]
+                        lime.pph = list(modulated_phase)
                         # Add the TX pulse phase to the pulse phase list (lime.pph) -> not yet implemented
                     else:
                         logger.debug("Adding TX pulse to existing pulse sequence")
@@ -241,6 +269,8 @@ class LimeNQRController(BaseSpectrometerController):
         
                         # Setting pulse amplitude
                         lime.pam += list(pulse_amplitude)
+                        # Setting pulse phase
+                        lime.pph += list(modulated_phase)
                         # Get the length of the previous event without a tx pulse
                         blank = []
                         previous_events = events[: events.index(event)]
