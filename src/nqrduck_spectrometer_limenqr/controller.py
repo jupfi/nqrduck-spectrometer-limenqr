@@ -467,44 +467,66 @@ class LimeNQRController(BaseSpectrometerController):
         Args:
             lime (limr): The limr object that is used to communicate with the pulseN driver
 
-
         Returns:
-            tuple: A tuple containing the start and stop time of the RX event in µs"""
-        # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
-        #CORRECTION_FACTOR = 2.4e-6
+            tuple: A tuple containing the start and stop time of the RX event in µs
+        """
         CORRECTION_FACTOR = self.module.model.get_setting_by_name(self.module.model.RX_OFFSET).value
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
 
-        previous_events_duration = 0
-        offset = 0
-        rx_duration = 0
-        for event in events:
-            logger.debug("Event %s has parameters: %s", event.name, event.parameters)
-            for parameter in event.parameters.values():
-                logger.debug(
-                    "Parameter %s has options: %s", parameter.name, parameter.options
-                )
-
-                if (
-                    parameter.name == self.module.model.RX
-                    and parameter.get_option_by_name(RXReadout.RX).value
-                ):
-                    # Get the length of all previous events
-                    previous_events = events[: events.index(event)]
-                    previous_events_duration = sum(
-                        [event.duration for event in previous_events]
-                    )
-                    # Get the offset of the first pulse
-                    offset = self.module.model.OFFSET_FIRST_PULSE * (1 / lime.sra)
-                    rx_duration = event.duration
-
-        rx_begin = float(previous_events_duration) + offset + CORRECTION_FACTOR
-        if rx_duration:
-            rx_stop = rx_begin + float(rx_duration)
-            return rx_begin * 1e6, rx_stop * 1e6
-
-        else:
+        rx_event = self.find_rx_event(events)
+        if not rx_event:
             return None, None
+
+        previous_events_duration = self.calculate_previous_events_duration(events, rx_event)
+        rx_duration = float(rx_event.duration)
+
+        offset = self.calculate_offset(lime)
+
+        rx_begin = float(previous_events_duration) + float(offset) + CORRECTION_FACTOR
+        rx_stop = rx_begin + rx_duration
+        return rx_begin * 1e6, rx_stop * 1e6
+
+    def find_rx_event(self, events):
+        """This method finds the RX event in the pulse sequence.
+        
+        Args:
+            events (list): The pulse sequence events
+        
+        Returns:
+            Event: The RX event
+        """
+        for event in events:
+            parameter = event.parameters.get(self.module.model.RX)
+            if parameter and parameter.get_option_by_name(RXReadout.RX).value:
+                self.log_event_details(event)
+                self.log_parameter_details(parameter)
+                return event
+        return None
+
+    def calculate_previous_events_duration(self, events, rx_event):
+        """This method calculates the duration of the previous events.
+        
+        Args:
+            events (list): The pulse sequence events
+            rx_event (Event): The RX event
+        
+        Returns:
+            float: The duration of the previous events
+        """
+        previous_events = events[: events.index(rx_event)]
+        return sum(event.duration for event in previous_events)
+
+    def calculate_offset(self, lime):
+        """This method calculates the offset for the RX event.
+
+        Args:
+            lime (limr): The limr object that is used to communicate with the pulseN driver 
+        
+        Returns:
+            float: The offset for the RX event
+        """
+        return self.module.model.OFFSET_FIRST_PULSE * (1 / lime.sra)
+
 
     def set_frequency(self, value: float):
         """This method sets the target frequency of the spectrometer.
