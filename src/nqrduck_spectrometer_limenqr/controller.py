@@ -482,7 +482,7 @@ class LimeNQRController(BaseSpectrometerController):
 
         offset = self.calculate_offset(lime)
 
-        rx_begin = float(previous_events_duration) + float(offset) + CORRECTION_FACTOR
+        rx_begin = float(previous_events_duration) + float(offset) + float(CORRECTION_FACTOR)
         rx_stop = rx_begin + rx_duration
         return rx_begin * 1e6, rx_stop * 1e6
 
