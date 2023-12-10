@@ -28,12 +28,15 @@ class LimeNQRModel(BaseSpectrometerModel):
     RX_I_GAIN_CORRECTION = "RX I Gain correction"
     RX_Q_GAIN_CORRECTION = "RX Q Gain correction"
     RX_PHASE_ADJUSTMENT = "RX phase adjustment"
+    RX_OFFSET = "RX offset"
+    FFT_SHIFT = "FFT shift"
 
     # Constants for the Categories of the settings
     ACQUISITION = "Acquisition"
     GATE_SETTINGS = "Gate Settings"
     RX_TX_SETTINGS = "RX/TX Settings"
     CALIBRATION = "Calibration"
+    SIGNAL_PROCESSING = "Signal Processing"
 
     # Pulse parameter constants
     TX = "TX"
@@ -71,6 +74,9 @@ class LimeNQRModel(BaseSpectrometerModel):
         self.add_setting(self.RX_I_GAIN_CORRECTION, 2047, "RX I Gain correction", self.CALIBRATION)
         self.add_setting(self.RX_Q_DC_CORRECTION, 2047, "TX Q Gain correction", self.CALIBRATION)
         self.add_setting(self.RX_PHASE_ADJUSTMENT, 0, "TX phase adjustment", self.CALIBRATION)
+        # Signal Processing settings
+        self.add_setting(self.RX_OFFSET, 2.4e-6, "The offset of the RX event, this changes all the time", self.SIGNAL_PROCESSING)
+        self.add_setting(self.FFT_SHIFT, False, "FFT shift", self.SIGNAL_PROCESSING)
 
         # Pulse parameter options
         self.add_pulse_parameter_option(self.TX, TXPulse)

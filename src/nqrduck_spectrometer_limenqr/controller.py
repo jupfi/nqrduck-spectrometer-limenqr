@@ -84,11 +84,18 @@ class LimeNQRController(BaseSpectrometerController):
         tdx = lime.HDF.tdx[evidx] - lime.HDF.tdx[evidx][0]
         tdy = lime.HDF.tdy[evidx] / lime.nav
 
+        fft_shift = self.module.model.get_setting_by_name(self.module.model.FFT_SHIFT).value
+
+        if fft_shift:
+            fft_shift = self.module.model.if_frequency
+        else:
+            fft_shift = 0
+
         measurement_data = Measurement(
             tdx,
             tdy,
             self.module.model.target_frequency,
-            # frequency_shift=self.module.model.if_frequency,
+            frequency_shift=fft_shift,
         )
 
         # Emit the data to the nqrduck core
@@ -120,7 +127,7 @@ class LimeNQRController(BaseSpectrometerController):
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
                     lime.lof = (
-                        self.module.model.target_frequency
+                        self.module.model.target_frequency - setting.get_setting()
                     )
                     self.module.model.if_frequency = setting.get_setting()
                 elif setting.name == self.module.model.ACQUISITION_TIME:
@@ -330,7 +337,8 @@ class LimeNQRController(BaseSpectrometerController):
         Returns:
             tuple: A tuple containing the start and stop time of the RX event in µs"""
         # This is a correction factor for the RX event. The offset of the first pulse is 2.2µs longer than from the specified samples.
-        CORRECTION_FACTOR = 2.4e-6
+        #CORRECTION_FACTOR = 2.4e-6
+        CORRECTION_FACTOR = self.module.model.get_setting_by_name(self.module.model.RX_OFFSET).value
         events = self.module.model.pulse_programmer.model.pulse_sequence.events
 
         previous_events_duration = 0
