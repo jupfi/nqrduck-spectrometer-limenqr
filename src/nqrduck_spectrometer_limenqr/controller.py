@@ -128,7 +128,7 @@ class LimeNQRController(BaseSpectrometerController):
             evidx = self.find_evaluation_range_indices(lime, rx_begin, rx_stop)
             tdx, tdy = self.extract_measurement_data(lime, evidx)
             fft_shift = self.get_fft_shift()
-            return Measurement(tdx, tdy, self.module.model.target_frequency, frequency_shift=fft_shift)
+            return Measurement(tdx, tdy, self.module.model.target_frequency, frequency_shift=fft_shift, IF_frequency=self.module.model.if_frequency)
         except Exception as e:
             logger.error("Error processing measurement result: %s", e)
             return None
