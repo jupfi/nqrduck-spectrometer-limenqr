@@ -50,7 +50,7 @@ class LimeNQRModel(BaseSpectrometerModel):
         super().__init__(module)
         # Acquisition settings
         self.add_setting(self.SAMPLING_FREQUENCY, 30.72e6 , "Sampling frequency", self.ACQUISITION)
-        self.add_setting(self.IF_FREQUENCY, 1.2e6, "IF Frequency", self.ACQUISITION)
+        self.add_setting(self.IF_FREQUENCY, 5e6, "IF Frequency", self.ACQUISITION)
         self.if_frequency = 1.2e6
         self.add_setting(self.ACQUISITION_TIME, 82e-6, "Acquisition time - this is from the beginning of the pulse sequence", self.ACQUISITION)
         # Gate Settings
@@ -60,7 +60,7 @@ class LimeNQRModel(BaseSpectrometerModel):
         self.add_setting(self.GATE_SHIFT, 53, "Gate shift", self.GATE_SETTINGS)
         # RX/TX settings
         self.add_setting(self.RX_GAIN, 55, "RX Gain", self.RX_TX_SETTINGS)
-        self.add_setting(self.TX_GAIN, 40, "TX Gain", self.RX_TX_SETTINGS)
+        self.add_setting(self.TX_GAIN, 30, "TX Gain", self.RX_TX_SETTINGS)
         self.add_setting(self.RX_LPF_BW, 30.72e6/2, "RX LPF BW", self.RX_TX_SETTINGS)
         self.add_setting(self.TX_LPF_BW, 130.0e6, "TX LPF BW", self.RX_TX_SETTINGS)
         # Calibration settings
