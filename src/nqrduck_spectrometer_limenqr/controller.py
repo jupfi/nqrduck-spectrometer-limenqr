@@ -157,6 +157,8 @@ class LimeNQRController(BaseSpectrometerController):
         """
         tdx = lime.HDF.tdx[indices] - lime.HDF.tdx[indices][0]
         tdy = lime.HDF.tdy[indices] / lime.nav
+        # flatten the  tdy array
+        tdy = tdy.flatten()
         return tdx, tdy
 
     def get_fft_shift(self):
