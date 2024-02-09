@@ -3,6 +3,10 @@ import tempfile
 from pathlib import Path
 import numpy as np
 from decimal import Decimal
+
+from limedriver.binding import PyLimeConfig
+from limedriver.hdf_reader import HDF
+
 from nqrduck.module.module_controller import ModuleController
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
@@ -47,44 +51,49 @@ class LimeNQRController(BaseSpectrometerController):
     def initialize_lime(self):
         """This method initializes the limr object that is used to communicate with the pulseN driver."""
         try:
-            from .contrib.limr import limr
-            driver_path = str(Path(__file__).parent / "contrib/pulseN_test_USB.cpp")
-            return limr(driver_path)
+            # driver_path = str(Path(__file__).parent / "contrib/pulseN_test_USB.cpp")
+            n_pulses = self.get_number_of_pulses()
+            lime = PyLimeConfig(n_pulses)
+            return lime
         except ImportError as e:
             logger.error("Error while importing limr: %s", e)
         except Exception as e:
             logger.error("Error while initializing Lime driver: %s", e)
+            import traceback
+            traceback.print_exc()
         return None
 
     def setup_lime_parameters(self, lime):
-        """This method sets the parameters of the limr object according to the settings set in the spectrometer module.
+        """This method sets the parameters of the lime config according to the settings set in the spectrometer module.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
         """
-        lime.noi = -1
-        lime.nrp = 1
+        #lime.noi = -1
+        # 
+        # lime.nrp = 1
+        lime.repetitions = 1
         lime = self.update_settings(lime)
         lime = self.translate_pulse_sequence(lime)
-        lime.nav = self.module.model.averages
+        lime.averages = self.module.model.averages
         self.log_lime_parameters(lime)
 
     def setup_temporary_storage(self, lime):
         """This method sets up the temporary storage for the measurement data.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
         """
         temp_dir = tempfile.TemporaryDirectory()
         logger.debug("Created temporary directory at: %s", temp_dir.name)
-        lime.spt = Path(temp_dir.name)   # Temporary storage path
-        lime.fpa = "temp"                # Temporary filename prefix or related config
+        lime.save_path = str(Path(temp_dir.name)) + "/"   # Temporary storage path
+        lime.file_pattern = "temp"                # Temporary filename prefix or related config
     
     def perform_measurement(self, lime):
         """This method executes the measurement procedure.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
             
         Returns:
             bool: True if the measurement was successful, False otherwise
@@ -92,7 +101,6 @@ class LimeNQRController(BaseSpectrometerController):
         logger.debug("Running the measurement procedure")
         try:
             lime.run()
-            lime.readHDF()
             return True
         except Exception as e:
             logger.error("Failed to execute the measurement: %s", e)
@@ -102,7 +110,7 @@ class LimeNQRController(BaseSpectrometerController):
         """This method processes the measurement results and returns a Measurement object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
 
         Returns:
             Measurement: The measurement data
@@ -117,7 +125,7 @@ class LimeNQRController(BaseSpectrometerController):
         """This method calculates the measurement data from the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
             rx_begin (float): The start time of the RX event in µs
             rx_stop (float): The stop time of the RX event in µs
 
@@ -125,38 +133,41 @@ class LimeNQRController(BaseSpectrometerController):
             Measurement: The measurement data
         """
         try:
-            evidx = self.find_evaluation_range_indices(lime, rx_begin, rx_stop)
-            tdx, tdy = self.extract_measurement_data(lime, evidx)
+            path = lime.get_path()
+            hdf =  HDF(path)
+            evidx = self.find_evaluation_range_indices(hdf, rx_begin, rx_stop)
+            tdx, tdy = self.extract_measurement_data(lime, hdf, evidx)
             fft_shift = self.get_fft_shift()
             return Measurement(tdx, tdy, self.module.model.target_frequency, frequency_shift=fft_shift, IF_frequency=self.module.model.if_frequency)
         except Exception as e:
             logger.error("Error processing measurement result: %s", e)
             return None
 
-    def find_evaluation_range_indices(self, lime, rx_begin, rx_stop):
+    def find_evaluation_range_indices(self, hdf, rx_begin, rx_stop):
         """This method finds the indices of the evaluation range in the measurement data.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            HDF (HDF): The HDF object that is used to read the measurement data
             rx_begin (float): The start time of the RX event in µs
             rx_stop (float): The stop time of the RX event in µs
         
         Returns:
             list: The indices of the evaluation range in the measurement data"""
-        return np.where((lime.HDF.tdx > rx_begin) & (lime.HDF.tdx < rx_stop))[0]
+        return np.where((hdf.tdx > rx_begin) & (hdf.tdx < rx_stop))[0]
 
-    def extract_measurement_data(self, lime, indices):
+    def extract_measurement_data(self, lime, hdf, indices):
         """This method extracts the measurement data from the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
+            HDF (HDF): The HDF object that is used to read the measurement data
             indices (list): The indices of the evaluation range in the measurement data
 
         Returns:
             tuple: A tuple containing the time vector and the measurement data
         """
-        tdx = lime.HDF.tdx[indices] - lime.HDF.tdx[indices][0]
-        tdy = lime.HDF.tdy[indices] / lime.nav
+        tdx = hdf.tdx[indices] - hdf.tdx[indices][0]
+        tdy = hdf.tdy[indices] / lime.averages
         # flatten the  tdy array
         tdy = tdy.flatten()
         return tdx, tdy
@@ -199,81 +210,79 @@ class LimeNQRController(BaseSpectrometerController):
         """This method logs the parameters of the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
         """
-        for key in sorted(lime.parsinp):
-            val = getattr(lime, key, [])
-            if val:
-                logger.debug(f"{key}: {val} {lime.parsinp[key][1]}")
+        # for key, value in lime.__dict__.items():
+            # logger.debug("Lime parameter %s has value %s", key, value)
+        logger.debug("Lime parameter %s has value %s", "srate", lime.srate)
 
     def update_settings(self, lime):
         """This method sets the parameters of the limr object according to the settings set in the spectrometer module.
 
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
 
         Returns:
-            limr: The updated limr object"""
+            lime: The updated limr object"""
 
         logger.debug(
             "Updating settings for spectrometer: %s for measurement",
             self.module.model.name,
         )
-        lime.t3d = [0, 0, 0, 0]
+        lime.c3_tim = [0, 0, 0, 0]
         # I don't like this code
         for category in self.module.model.settings.keys():
             for setting in self.module.model.settings[category]:
                 logger.debug("Setting %s has value %s", setting.name, setting.value)
                 # Acquisiton settings
                 if setting.name == self.module.model.SAMPLING_FREQUENCY:
-                    lime.sra = setting.get_setting()
+                    lime.srate = setting.get_setting()
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
-                    lime.lof = (
-                        self.module.model.target_frequency - setting.get_setting()
-                    )
+                    lime.frq = self.module.model.target_frequency - setting.get_setting()
                     self.module.model.if_frequency = setting.get_setting()
                 elif setting.name == self.module.model.ACQUISITION_TIME:
-                    lime.tac = setting.get_setting()
+                    lime.rectime_secs = setting.get_setting()
                 # Gate settings
                 elif setting.name == self.module.model.GATE_ENABLE:
-                    lime.t3d[0] = int(setting.value)
+                    lime.c3_tim[0] = int(setting.get_setting())
                 elif setting.name == self.module.model.GATE_PADDING_LEFT:
-                    lime.t3d[1] = int(setting.get_setting())
+                    lime.c3_tim[1] = int(setting.get_setting())
                 elif setting.name == self.module.model.GATE_SHIFT:
-                    lime.t3d[2] = int(setting.get_setting())
+                    lime.c3_tim[2] = int(setting.get_setting())
                 elif setting.name == self.module.model.GATE_PADDING_RIGHT:
-                    lime.t3d[3] = int(setting.get_setting())
+                    lime.c3_tim[3] = int(setting.get_setting())
                 # RX/TX settings
                 elif setting.name == self.module.model.TX_GAIN:
-                    lime.tgn = setting.get_setting()
+                    lime.TX_gain = setting.get_setting()
                 elif setting.name == self.module.model.RX_GAIN:
-                    lime.rgn = setting.get_setting()
+                    lime.RX_gain = setting.get_setting()
                 elif setting.name == self.module.model.RX_LPF_BW:
-                    lime.rlp = setting.get_setting()
+                    lime.RX_LPF = setting.get_setting()
                 elif setting.name == self.module.model.TX_LPF_BW:
-                    lime.tlp = setting.get_setting()
+                    lime.TX_LPF = setting.get_setting()
                 # Calibration settings
                 elif setting.name == self.module.model.TX_I_DC_CORRECTION:
-                    lime.tdi = setting.get_setting()
+                    lime.TX_IcorrDC = setting.get_setting()
                 elif setting.name == self.module.model.TX_Q_DC_CORRECTION:
-                    lime.tdq = setting.get_setting()
+                    lime.TX_QcorrDC = setting.get_setting()
+                # This stuff doesn"t seem to be implemented in the LimeDriver
                 elif setting.name == self.module.model.TX_I_GAIN_CORRECTION:
-                    lime.tgi = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.TX_Q_GAIN_CORRECTION:
-                    lime.tgq = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.TX_PHASE_ADJUSTMENT:
-                    lime.tpc = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.RX_I_DC_CORRECTION:
-                    lime.rdi = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.RX_Q_DC_CORRECTION:
-                    lime.rdq = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.RX_I_GAIN_CORRECTION:
-                    lime.rgi = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.RX_Q_GAIN_CORRECTION:
-                    lime.rgq = setting.get_setting()
+                    pass
                 elif setting.name == self.module.model.RX_PHASE_ADJUSTMENT:
-                    lime.rpc = setting.get_setting()
+                    pass
 
         return lime
 
@@ -281,9 +290,11 @@ class LimeNQRController(BaseSpectrometerController):
         """This method translates the pulse sequence to the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
         """
         events = self.fetch_pulse_sequence_events()
+
+        first_pulse = True
 
         for event in events:
             self.log_event_details(event)
@@ -294,16 +305,47 @@ class LimeNQRController(BaseSpectrometerController):
                     pulse_shape, pulse_amplitude = self.prepare_pulse_amplitude(event, parameter)
                     pulse_amplitude, modulated_phase = self.modulate_pulse_amplitude(pulse_amplitude, event, lime)
 
-                    if not lime.pfr:  # If the pulse frequency list is empty
-                        self.initialize_pulse_lists(lime, pulse_amplitude, pulse_shape, modulated_phase)
+                    if first_pulse:  # If the pulse frequency list is empty
+                        pfr, pdr, pam, pof, pph = self.initialize_pulse_lists(lime, pulse_amplitude, pulse_shape, modulated_phase)
+                        first_pulse = False
                     else:
-                        self.extend_pulse_lists(lime, pulse_amplitude, pulse_shape, modulated_phase)
-                        self.calculate_and_set_offsets(lime, pulse_shape, events, event, pulse_amplitude)
+                        pfr_ext, pdr_ext, pam_ext, pph_ext = self.extend_pulse_lists(lime, pulse_amplitude, pulse_shape, modulated_phase)
+                        pof_ext =  self.calculate_and_set_offsets(lime, pulse_shape, events, event, pulse_amplitude)
 
+                        pfr.extend(pfr_ext)
+                        pdr.extend(pdr_ext)
+                        pam.extend(pam_ext)
+                        pof.extend(pof_ext)
+                        pph.extend(pph_ext)
+
+        lime.p_frq = pfr
+        lime.p_dur = pdr
+        lime.p_amp = pam
+        lime.p_offs = pof
+        lime.p_pha = pph
         # Set repetition time event as last event's duration and update number of pulses
-        lime.trp = float(event.duration)
-        lime.npu = len(lime.pfr)
+        lime.reptime_secs = float(event.duration)
+        lime.Npulses = len(lime.p_frq)
         return lime
+    
+    def get_number_of_pulses(self):
+        """ This method calculates the number of pulses in the pulse sequence before the LimeDriverBinding is initialized.
+        This makes sure it"s initialized with the correct size of the pulse lists.
+        
+        Returns:
+            int: The number of pulses in the pulse sequence
+        """
+
+        events = self.fetch_pulse_sequence_events()
+        num_pulses = 0
+        for event in events:
+            for parameter in event.parameters.values():
+                if self.is_translatable_tx_parameter(parameter):
+                    _, pulse_amplitude = self.prepare_pulse_amplitude(event, parameter)
+                    num_pulses += len(pulse_amplitude)
+                    logger.debug("Number of pulses: %s", num_pulses)
+
+        return num_pulses
 
     # Helper functions below:
 
@@ -311,7 +353,8 @@ class LimeNQRController(BaseSpectrometerController):
         """This method fetches the pulse sequence events from the pulse programmer module.
         
         Returns:
-            list: The pulse sequence events"""
+            list: The pulse sequence events
+        """
         return self.module.model.pulse_programmer.model.pulse_sequence.events
 
     def log_event_details(self, event):
@@ -349,12 +392,13 @@ class LimeNQRController(BaseSpectrometerController):
         Args:
             pulse_amplitude (float): The pulse amplitude
             event (Event): The event that contains the parameter
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig) : The PyLimeConfig object that is used to communicate with the pulseN driver
         
         Returns:
             tuple: A tuple containing the modulated pulse amplitude and the modulated phase
         """
-        num_samples = int(float(event.duration) * lime.sra)
+        # num_samples = int(float(event.duration) * lime.sra)
+        num_samples = int(float(event.duration) * lime.srate)
         tdx = np.linspace(0, float(event.duration), num_samples, endpoint=False)
         shift_signal = np.exp(1j * 2 * np.pi * self.module.model.if_frequency * tdx)
         pulse_complex = pulse_amplitude * shift_signal
@@ -373,37 +417,42 @@ class LimeNQRController(BaseSpectrometerController):
         """This method initializes the pulse lists of the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
             pulse_amplitude (float): The pulse amplitude
             pulse_shape (PulseShape): The pulse shape
             modulated_phase (float): The modulated phase
         """
-        lime.pfr = [float(self.module.model.if_frequency)] * len(pulse_amplitude)
-        lime.pdr = [float(pulse_shape.resolution)] * len(pulse_amplitude)
-        lime.pam = list(pulse_amplitude)
-        lime.pof = ([self.module.model.OFFSET_FIRST_PULSE] +
-                    [int(pulse_shape.resolution * Decimal(lime.sra))] * (len(pulse_amplitude) - 1))
-        lime.pph = list(modulated_phase)
+        pfr = [float(self.module.model.if_frequency)] * len(pulse_amplitude)
+        # We set the first  len(pulse_amplitude) of the p_dur 
+        pdr = [float(pulse_shape.resolution)] * len(pulse_amplitude)
+        pam = list(pulse_amplitude)
+        pof = ([self.module.model.OFFSET_FIRST_PULSE] +
+                    [int(pulse_shape.resolution * Decimal(lime.srate))] * (len(pulse_amplitude) - 1))
+        pph = list(modulated_phase)
+
+        return  pfr, pdr, pam, pof, pph
 
     def extend_pulse_lists(self, lime, pulse_amplitude, pulse_shape, modulated_phase):
         """This method extends the pulse lists of the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
             pulse_amplitude (float): The pulse amplitude
             pulse_shape (PulseShape): The pulse shape
             modulated_phase (float): The modulated phase
         """
-        lime.pfr.extend([float(self.module.model.if_frequency)] * len(pulse_amplitude))
-        lime.pdr.extend([float(pulse_shape.resolution)] * len(pulse_amplitude))
-        lime.pam.extend(list(pulse_amplitude))
-        lime.pph.extend(list(modulated_phase))
+        pfr = ([float(self.module.model.if_frequency)] * len(pulse_amplitude))
+        pdr = ([float(pulse_shape.resolution)] * len(pulse_amplitude))
+        pam = (list(pulse_amplitude))
+        pph = (list(modulated_phase))
+
+        return pfr, pdr, pam, pph
 
     def calculate_and_set_offsets(self, lime, pulse_shape, events, current_event, pulse_amplitude):
         """This method calculates and sets the offsets for the limr object.
         
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
             pulse_shape (PulseShape): The pulse shape
             events (list): The pulse sequence events
             current_event (Event): The current event
@@ -415,15 +464,16 @@ class LimeNQRController(BaseSpectrometerController):
         total_blank_duration = sum(blank_durations)
         # Calculate the offset for the current pulse
         # The first pulse offset is already set, so calculate subsequent ones
-        offset_for_current_pulse = int(np.ceil(total_blank_duration * lime.sra))
+        offset_for_current_pulse = int(np.ceil(total_blank_duration * lime.srate))
 
         # Offset for the current pulse should be added only once
-        lime.pof.append(offset_for_current_pulse)
+        pof = (offset_for_current_pulse)
 
         # Set the offset for the remaining samples of the current pulse (excluding the first sample)
         # We subtract 1 because we have already set the offset for the current pulse's first sample
-        offset_per_sample = int(float(pulse_shape.resolution) * lime.sra)
-        lime.pof.extend([offset_per_sample] * (len(pulse_amplitude) - 1))
+        offset_per_sample = int(float(pulse_shape.resolution) * lime.srate)
+        pof.extend([offset_per_sample] * (len(pulse_amplitude) - 1))
+        return pof
 
     def get_blank_durations_before_event(self, events, current_event):
         """This method returns the blank durations before the current event.
@@ -467,7 +517,7 @@ class LimeNQRController(BaseSpectrometerController):
         """This method translates the RX event of the pulse sequence to the limr object.
 
         Args:
-            lime (limr): The limr object that is used to communicate with the pulseN driver
+            lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
 
         Returns:
             tuple: A tuple containing the start and stop time of the RX event in µs
@@ -527,7 +577,7 @@ class LimeNQRController(BaseSpectrometerController):
         Returns:
             float: The offset for the RX event
         """
-        return self.module.model.OFFSET_FIRST_PULSE * (1 / lime.sra)
+        return self.module.model.OFFSET_FIRST_PULSE * (1 / lime.srate)
 
 
     def set_frequency(self, value: float):
