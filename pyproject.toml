@@ -24,6 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "limedriver @ git+https://github.com/nqrduck/LimeDriverBindings",
     "nqrduck-spectrometer",
     "pyqt6",
     "h5py",
