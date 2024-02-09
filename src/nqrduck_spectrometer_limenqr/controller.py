@@ -51,7 +51,6 @@ class LimeNQRController(BaseSpectrometerController):
     def initialize_lime(self):
         """This method initializes the limr object that is used to communicate with the pulseN driver."""
         try:
-            # driver_path = str(Path(__file__).parent / "contrib/pulseN_test_USB.cpp")
             n_pulses = self.get_number_of_pulses()
             lime = PyLimeConfig(n_pulses)
             return lime
@@ -467,7 +466,7 @@ class LimeNQRController(BaseSpectrometerController):
         offset_for_current_pulse = int(np.ceil(total_blank_duration * lime.srate))
 
         # Offset for the current pulse should be added only once
-        pof = (offset_for_current_pulse)
+        pof = [(offset_for_current_pulse)]
 
         # Set the offset for the remaining samples of the current pulse (excluding the first sample)
         # We subtract 1 because we have already set the offset for the current pulse's first sample
