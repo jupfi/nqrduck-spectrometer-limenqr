@@ -69,6 +69,7 @@ class LimeNQRController(BaseSpectrometerController):
             lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
         """
         #lime.noi = -1
+        lime.override_init = -1
         # 
         # lime.nrp = 1
         lime.repetitions = 1
@@ -267,21 +268,23 @@ class LimeNQRController(BaseSpectrometerController):
                     lime.TX_QcorrDC = setting.get_setting()
                 # This stuff doesn"t seem to be implemented in the LimeDriver
                 elif setting.name == self.module.model.TX_I_GAIN_CORRECTION:
-                    pass
+                    lime.TX_IcorrGain = setting.get_setting()
                 elif setting.name == self.module.model.TX_Q_GAIN_CORRECTION:
-                    pass
+                    lime.TX_QcorrGain = setting.get_setting()
                 elif setting.name == self.module.model.TX_PHASE_ADJUSTMENT:
-                    pass
+                    lime.TX_IQcorrPhase = setting.get_setting()
                 elif setting.name == self.module.model.RX_I_DC_CORRECTION:
+                    # lime.RX_IcorrDC = setting.get_setting()
                     pass
                 elif setting.name == self.module.model.RX_Q_DC_CORRECTION:
+                    # lime.RX_QcorrDC = setting.get_setting()
                     pass
                 elif setting.name == self.module.model.RX_I_GAIN_CORRECTION:
-                    pass
+                    lime.RX_IcorrGain = setting.get_setting()
                 elif setting.name == self.module.model.RX_Q_GAIN_CORRECTION:
-                    pass
+                    lime.RX_QcorrGain = setting.get_setting()
                 elif setting.name == self.module.model.RX_PHASE_ADJUSTMENT:
-                    pass
+                    lime.RX_IQcorrPhase = setting.get_setting()
 
         return lime
 
