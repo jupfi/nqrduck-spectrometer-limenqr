@@ -237,6 +237,8 @@ class LimeNQRController(BaseSpectrometerController):
                 # Acquisiton settings
                 if setting.name == self.module.model.SAMPLING_FREQUENCY:
                     lime.srate = setting.get_setting()
+                elif setting.name == self.module.model.CHANNEL:
+                    lime.channel = setting.get_setting()
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
                     lime.frq = self.module.model.target_frequency - setting.get_setting()
