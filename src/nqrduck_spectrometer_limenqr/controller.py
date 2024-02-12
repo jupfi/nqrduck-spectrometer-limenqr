@@ -117,7 +117,10 @@ class LimeNQRController(BaseSpectrometerController):
         """
         rx_begin, rx_stop = self.translate_rx_event(lime)
         if rx_begin is None or rx_stop is None:
-            return None
+            # Instead print the whole acquisition range
+            rx_begin = 0
+            rx_stop = lime.rectime_secs * 1e6
+
         logger.debug("RX event begins at: %sµs and ends at: %sµs", rx_begin, rx_stop)
         return self.calculate_measurement_data(lime, rx_begin, rx_stop)
 
@@ -239,6 +242,10 @@ class LimeNQRController(BaseSpectrometerController):
                     lime.srate = setting.get_setting()
                 elif setting.name == self.module.model.CHANNEL:
                     lime.channel = setting.get_setting()
+                elif setting.name == self.module.model.TX_MATCHING:
+                    lime.TX_matching = setting.get_setting()
+                elif setting.name == self.module.model.RX_MATCHING:
+                    lime.RX_matching = setting.get_setting()
                 # Careful this doesn't only set the IF frequency but the local oscillator frequency
                 elif setting.name == self.module.model.IF_FREQUENCY:
                     lime.frq = self.module.model.target_frequency - setting.get_setting()

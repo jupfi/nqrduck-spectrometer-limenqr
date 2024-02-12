@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 class LimeNQRModel(BaseSpectrometerModel):    
     # Setting constants for the names of the spectrometer settings
     CHANNEL = "TX/RX Channel"
+    TX_MATCHING = "TX Matching"
+    RX_MATCHING = "RX Matching"
     SAMPLING_FREQUENCY = "Sampling Frequency"
     IF_FREQUENCY = "IF Frequency"
     ACQUISITION_TIME = "Acquisition time"
@@ -51,6 +53,8 @@ class LimeNQRModel(BaseSpectrometerModel):
         super().__init__(module)
         # Acquisition settings
         self.add_setting(self.CHANNEL, 0, "TX/RX Channel", self.ACQUISITION)
+        self.add_setting(self.TX_MATCHING, 0, "TX Matching", self.ACQUISITION)
+        self.add_setting(self.RX_MATCHING, 0, "RX Matching", self.ACQUISITION)
         self.add_setting(self.SAMPLING_FREQUENCY, 30.72e6 , "Sampling frequency", self.ACQUISITION)
         self.add_setting(self.IF_FREQUENCY, 5e6, "IF Frequency", self.ACQUISITION)
         self.if_frequency = 1.2e6
