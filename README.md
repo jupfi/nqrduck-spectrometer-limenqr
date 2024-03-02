@@ -19,7 +19,7 @@ You can find more information about the installation of dependencies in the [Lim
 
 Additional dependencies should be installed  by the pyproject.toml file when installing this module.
 
-## Setup
+### Setup
 To install the module you need the NQRduck core. You can find the installation instructions for the NQRduck core [here](https://github.com/nqrduck/nqrduck).
 
 Ideally you should install the module in a virtual environment. You can create a virtual environment by running the following command in the terminal:
