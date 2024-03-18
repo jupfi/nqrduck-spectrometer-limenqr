@@ -23,7 +23,13 @@ class LimeNQRController(BaseSpectrometerController):
         self.log_start_message()
 
         lime = self.initialize_lime()
-        if not lime:
+        if lime is None:
+            # Emit error message
+            self.emit_measurement_error("Error with Lime driver. Is the Lime driver installed?")
+            return -1
+        elif lime.Npulses == 0:
+            # Emit error message
+            self.emit_measurement_error("Error with pulse sequence. Is the pulse sequence empty?")
             return -1
 
         self.setup_lime_parameters(lime)
@@ -49,7 +55,11 @@ class LimeNQRController(BaseSpectrometerController):
         logger.debug("Starting measurement with spectrometer: %s", self.module.model.name)
 
     def initialize_lime(self):
-        """This method initializes the limr object that is used to communicate with the pulseN driver."""
+        """This method initializes the limr object that is used to communicate with the pulseN driver.
+        
+        Returns:
+            PyLimeConfig: The PyLimeConfig object that is used to communicate with the pulseN driver
+        """
         try:
             n_pulses = self.get_number_of_pulses()
             lime = PyLimeConfig(n_pulses)
@@ -60,6 +70,7 @@ class LimeNQRController(BaseSpectrometerController):
             logger.error("Error while initializing Lime driver: %s", e)
             import traceback
             traceback.print_exc()
+
         return None
 
     def setup_lime_parameters(self, lime):
