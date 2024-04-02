@@ -243,7 +243,7 @@ class LimeNQRController(BaseSpectrometerController):
             "Updating settings for spectrometer: %s for measurement",
             self.module.model.name,
         )
-        lime.c3_tim = [0, 0, 0, 0]
+        c3_tim = [0, 0, 0, 0]
         # I don't like this code
         for category in self.module.model.settings.keys():
             for setting in self.module.model.settings[category]:
@@ -265,13 +265,13 @@ class LimeNQRController(BaseSpectrometerController):
                     lime.rectime_secs = setting.get_setting()
                 # Gate settings
                 elif setting.name == self.module.model.GATE_ENABLE:
-                    lime.c3_tim[0] = int(setting.get_setting())
+                    c3_tim[0] = int(setting.value)
                 elif setting.name == self.module.model.GATE_PADDING_LEFT:
-                    lime.c3_tim[1] = int(setting.get_setting())
+                    c3_tim[1] = int(setting.get_setting())
                 elif setting.name == self.module.model.GATE_SHIFT:
-                    lime.c3_tim[2] = int(setting.get_setting())
+                    c3_tim[2] = int(setting.get_setting())
                 elif setting.name == self.module.model.GATE_PADDING_RIGHT:
-                    lime.c3_tim[3] = int(setting.get_setting())
+                    c3_tim[3] = int(setting.get_setting())
                 # RX/TX settings
                 elif setting.name == self.module.model.TX_GAIN:
                     lime.TX_gain = setting.get_setting()
@@ -306,6 +306,7 @@ class LimeNQRController(BaseSpectrometerController):
                 elif setting.name == self.module.model.RX_PHASE_ADJUSTMENT:
                     lime.RX_IQcorrPhase = setting.get_setting()
 
+        lime.c3_tim = c3_tim
         return lime
 
     def translate_pulse_sequence(self, lime):
