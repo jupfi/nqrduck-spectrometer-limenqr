@@ -53,16 +53,16 @@ class LimeNQRModel(BaseSpectrometerModel):
     def __init__(self, module) -> None:
         super().__init__(module)
         # Acquisition settings
-        channel_options = ["1", "2"]
-        channel_setting = SelectionSetting(self.CHANNEL, channel_options, "1", "TX/RX Channel")
+        channel_options = ["0", "1"]
+        channel_setting = SelectionSetting(self.CHANNEL, channel_options, "0", "TX/RX Channel")
         self.add_setting(channel_setting, self.ACQUISITION)
 
-        tx_matching_options = ["1", "2"]
-        tx_matching_setting = SelectionSetting(self.TX_MATCHING, tx_matching_options, "1", "TX Matching")
+        tx_matching_options = ["0", "1"]
+        tx_matching_setting = SelectionSetting(self.TX_MATCHING, tx_matching_options, "0", "TX Matching")
         self.add_setting(tx_matching_setting, self.ACQUISITION)
 
-        rx_matching_options = ["1", "2"]
-        rx_matching_setting = SelectionSetting(self.RX_MATCHING, rx_matching_options, "1", "RX Matching")
+        rx_matching_options = ["0", "1"]
+        rx_matching_setting = SelectionSetting(self.RX_MATCHING, rx_matching_options, "0", "RX Matching")
         self.add_setting(rx_matching_setting, self.ACQUISITION)
 
         sampling_frequency_setting = FloatSetting(self.SAMPLING_FREQUENCY, 30.72e6, "Sampling frequency")
