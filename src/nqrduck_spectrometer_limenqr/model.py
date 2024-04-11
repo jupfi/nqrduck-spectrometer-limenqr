@@ -65,71 +65,71 @@ class LimeNQRModel(BaseSpectrometerModel):
         rx_matching_setting = SelectionSetting(self.RX_MATCHING, rx_matching_options, "0", "RX Matching")
         self.add_setting(rx_matching_setting, self.ACQUISITION)
 
-        sampling_frequency_setting = FloatSetting(self.SAMPLING_FREQUENCY, 30.72e6, "Sampling frequency")
+        sampling_frequency_setting = FloatSetting(self.SAMPLING_FREQUENCY, 30.72e6, "The rate at which the spectrometer samples the input signal.", min_value=0, max_value=30.72e6)
         self.add_setting(sampling_frequency_setting, self.ACQUISITION)
 
-        if_frequency_setting = FloatSetting(self.IF_FREQUENCY, 5e6, "IF Frequency")
+        if_frequency_setting = FloatSetting(self.IF_FREQUENCY, 5e6, "The intermediate frequency to which the input signal is down converted during analog-to-digital conversion.", min_value=0)
         self.add_setting(if_frequency_setting, self.ACQUISITION)
         self.if_frequency = 5e6
 
-        acquisition_time_setting = FloatSetting(self.ACQUISITION_TIME, 82e-6, "Acquisition time - this is from the beginning of the pulse sequence")
+        acquisition_time_setting = FloatSetting(self.ACQUISITION_TIME, 82e-6, "Acquisition time - this is from the beginning of the pulse sequence", min_value=0)
         self.add_setting(acquisition_time_setting, self.ACQUISITION)
 
         # Gate Settings
-        gate_enable_setting = BooleanSetting(self.GATE_ENABLE, True, "Enable")
+        gate_enable_setting = BooleanSetting(self.GATE_ENABLE, True, "Setting that controls whether gate is on during transmitting.")
         self.add_setting(gate_enable_setting, self.GATE_SETTINGS)
 
-        gate_padding_left_setting = IntSetting(self.GATE_PADDING_LEFT, 10, "Gate padding left")
+        gate_padding_left_setting = IntSetting(self.GATE_PADDING_LEFT, 10, "The number of samples by which to extend the gate window to the left.", min_value=0)
         self.add_setting(gate_padding_left_setting, self.GATE_SETTINGS)
 
-        gate_padding_right_setting = IntSetting(self.GATE_PADDING_RIGHT, 10, "Gate padding right")
+        gate_padding_right_setting = IntSetting(self.GATE_PADDING_RIGHT, 10, "The number of samples by which to extend the gate window to the right.", min_value=0)
         self.add_setting(gate_padding_right_setting, self.GATE_SETTINGS)
 
-        gate_shift_setting = IntSetting(self.GATE_SHIFT, 53, "Gate shift")
+        gate_shift_setting = IntSetting(self.GATE_SHIFT, 53, "The delay, in number of samples, by which the gate window is shifted.", min_value=0)
         self.add_setting(gate_shift_setting, self.GATE_SETTINGS)
 
         # RX/TX settings
-        rx_gain_setting = IntSetting(self.RX_GAIN, 55, "RX Gain")
+        rx_gain_setting = IntSetting(self.RX_GAIN, 55, "The gain level of the receiver’s amplifier.", min_value=0, max_value=55, spin_box=(True, True))
         self.add_setting(rx_gain_setting, self.RX_TX_SETTINGS)
 
-        tx_gain_setting = IntSetting(self.TX_GAIN, 30, "TX Gain")
+        tx_gain_setting = IntSetting(self.TX_GAIN, 30, "The gain level of the transmitter’s amplifier.", min_value=0, max_value=55, spin_box=(True, True))
         self.add_setting(tx_gain_setting, self.RX_TX_SETTINGS)
 
-        rx_lpf_bw_setting = FloatSetting(self.RX_LPF_BW, 30.72e6/2, "RX LPF BW")
+        rx_lpf_bw_setting = FloatSetting(self.RX_LPF_BW, 30.72e6/2, "The bandwidth of the receiver’s low-pass filter which attenuates frequencies below a certain threshold.")
         self.add_setting(rx_lpf_bw_setting, self.RX_TX_SETTINGS)
 
-        tx_lpf_bw_setting = FloatSetting(self.TX_LPF_BW, 130.0e6, "TX LPF BW")
+        tx_lpf_bw_setting = FloatSetting(self.TX_LPF_BW, 130.0e6, "The bandwidth of the transmitter’s low-pass filter which limits the frequency range of the transmitted signa")
         self.add_setting(tx_lpf_bw_setting, self.RX_TX_SETTINGS)
 
         # Calibration settings
-        tx_i_dc_correction_setting = IntSetting(self.TX_I_DC_CORRECTION, -45, "TX I DC correction")
+        tx_i_dc_correction_setting = IntSetting(self.TX_I_DC_CORRECTION, -45, "Adjusts the direct current offset errors in the in-phase (I) component of the transmit (TX) path.", min_value=-128, max_value=127, spin_box=(True, True))
         self.add_setting(tx_i_dc_correction_setting, self.CALIBRATION)
 
-        tx_q_dc_correction_setting = IntSetting(self.TX_Q_DC_CORRECTION, 0, "TX Q DC correction")
+        tx_q_dc_correction_setting = IntSetting(self.TX_Q_DC_CORRECTION, 0, "Adjusts the direct current offset errors in the quadrature (Q) component of the transmit (TX) path.", min_value=-128, max_value=127, spin_box=(True, True))
         self.add_setting(tx_q_dc_correction_setting, self.CALIBRATION)
 
-        tx_i_gain_correction_setting = IntSetting(self.TX_I_GAIN_CORRECTION, 2047, "TX I Gain correction")
+        tx_i_gain_correction_setting = IntSetting(self.TX_I_GAIN_CORRECTION, 2047, "Modifies the gain settings for the I channel of the TX path, adjusting for imbalances.", min_value=0, max_value=2047, spin_box=(True, True))
         self.add_setting(tx_i_gain_correction_setting, self.CALIBRATION)
     
-        tx_q_gain_correction_setting = IntSetting(self.TX_Q_GAIN_CORRECTION, 2039, "TX Q Gain correction")
+        tx_q_gain_correction_setting = IntSetting(self.TX_Q_GAIN_CORRECTION, 2039, "Modifies the gain settings for the Q channel of the TX path, adjusting for imbalances.", min_value=0, max_value=2047, spin_box=(True, True))
         self.add_setting(tx_q_gain_correction_setting, self.CALIBRATION)
 
-        tx_phase_adjustment_setting = IntSetting(self.TX_PHASE_ADJUSTMENT, 3, "TX phase adjustment")
+        tx_phase_adjustment_setting = IntSetting(self.TX_PHASE_ADJUSTMENT, 3, "Corrects the Phase of I Q signals in the TX path.", min_value=-2048, max_value=2047, spin_box=(True, True))
         self.add_setting(tx_phase_adjustment_setting, self.CALIBRATION)
 
-        rx_i_dc_correction_setting = IntSetting(self.RX_I_DC_CORRECTION, 0, "RX I DC correction")
+        rx_i_dc_correction_setting = IntSetting(self.RX_I_DC_CORRECTION, 0, "Adjusts the direct current offset errors in the in-phase (I) component of the receive (RX) path.", min_value=-63, max_value=63, spin_box=(True, True))
         self.add_setting(rx_i_dc_correction_setting, self.CALIBRATION)
 
-        rx_q_dc_correction_setting = IntSetting(self.RX_Q_DC_CORRECTION, 0, "RX Q DC correction")
+        rx_q_dc_correction_setting = IntSetting(self.RX_Q_DC_CORRECTION, 0, "Adjusts the direct current offset errors in the quadrature (Q) component of the receive (RX) path.", min_value=-63, max_value=63, spin_box=(True, True))
         self.add_setting(rx_q_dc_correction_setting, self.CALIBRATION)
 
-        rx_i_gain_correction_setting = IntSetting(self.RX_I_GAIN_CORRECTION, 2047, "RX I Gain correction")
+        rx_i_gain_correction_setting = IntSetting(self.RX_I_GAIN_CORRECTION, 2047, "Modifies the gain settings for the I channel of the RX path, adjusting for imbalances.", min_value=0, max_value=2047, spin_box=(True, True))
         self.add_setting(rx_i_gain_correction_setting, self.CALIBRATION)
 
-        rx_q_gain_correction_setting = IntSetting(self.RX_Q_GAIN_CORRECTION, 2047, "RX Q Gain correction")
+        rx_q_gain_correction_setting = IntSetting(self.RX_Q_GAIN_CORRECTION, 2047, "Modifies the gain settings for the Q channel of the RX path, adjusting for imbalances.", min_value=0, max_value=2047, spin_box=(True, True))
         self.add_setting(rx_q_gain_correction_setting, self.CALIBRATION)
 
-        rx_phase_adjustment_setting = IntSetting(self.RX_PHASE_ADJUSTMENT, 0, "RX phase adjustment")
+        rx_phase_adjustment_setting = IntSetting(self.RX_PHASE_ADJUSTMENT, 0, "Corrects the Phase of I Q signals in the RX path.", min_value=-2048, max_value=2047, spin_box=(True, True))
         self.add_setting(rx_phase_adjustment_setting, self.CALIBRATION)
         
         # Signal Processing settings
