@@ -7,7 +7,6 @@ from decimal import Decimal
 from limedriver.binding import PyLimeConfig
 from limedriver.hdf_reader import HDF
 
-from nqrduck.module.module_controller import ModuleController
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
 from nqrduck_spectrometer.pulseparameters import TXPulse, RXReadout
@@ -166,7 +165,8 @@ class LimeNQRController(BaseSpectrometerController):
             rx_stop (float): The stop time of the RX event in µs
         
         Returns:
-            list: The indices of the evaluation range in the measurement data"""
+        list: The indices of the evaluation range in the measurement data
+        """
         return np.where((hdf.tdx > rx_begin) & (hdf.tdx < rx_stop))[0]
 
     def extract_measurement_data(self, lime, hdf, indices):
@@ -190,7 +190,8 @@ class LimeNQRController(BaseSpectrometerController):
         """This method returns the FFT shift value from the settings.
         
         Returns:
-            int: The FFT shift value"""
+        int: The FFT shift value
+        """
         fft_shift_enabled = self.module.model.get_setting_by_name(self.module.model.FFT_SHIFT).value
         return self.module.model.if_frequency if fft_shift_enabled else 0
 
@@ -237,8 +238,8 @@ class LimeNQRController(BaseSpectrometerController):
             lime (PyLimeConfig): The PyLimeConfig object that is used to communicate with the pulseN driver
 
         Returns:
-            lime: The updated limr object"""
-
+        lime: The updated limr object
+        """
         logger.debug(
             "Updating settings for spectrometer: %s for measurement",
             self.module.model.name,
@@ -352,13 +353,12 @@ class LimeNQRController(BaseSpectrometerController):
         return lime
     
     def get_number_of_pulses(self):
-        """ This method calculates the number of pulses in the pulse sequence before the LimeDriverBinding is initialized.
+        """This method calculates the number of pulses in the pulse sequence before the LimeDriverBinding is initialized.
         This makes sure it"s initialized with the correct size of the pulse lists.
         
         Returns:
             int: The number of pulses in the pulse sequence
         """
-
         events = self.fetch_pulse_sequence_events()
         num_pulses = 0
         for event in events:
@@ -390,7 +390,8 @@ class LimeNQRController(BaseSpectrometerController):
         """This method checks if a parameter a pulse with a transmit pulse shape (amplitude nonzero)
         
         Args:
-            parameter (Parameter): The parameter to check"""
+        parameter (Parameter): The parameter to check
+        """
         return (parameter.name == self.module.model.TX and
                 parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value > 0)
 
@@ -402,7 +403,8 @@ class LimeNQRController(BaseSpectrometerController):
             parameter (Parameter): The parameter that contains the pulse shape and amplitude
         
         Returns:
-            tuple: A tuple containing the pulse shape and the pulse amplitude"""
+        tuple: A tuple containing the pulse shape and the pulse amplitude
+        """
         pulse_shape = parameter.get_option_by_name(TXPulse.TX_PULSE_SHAPE).value
         pulse_amplitude = abs(pulse_shape.get_pulse_amplitude(event.duration)) * \
                           parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
@@ -433,7 +435,8 @@ class LimeNQRController(BaseSpectrometerController):
         """This method unwraps the phase of the pulse.
         
         Args:
-            phase (float): The phase of the pulse"""
+        phase (float): The phase of the pulse
+        """
         return (np.unwrap(phase) + 2 * np.pi) % (2 * np.pi)
 
     def initialize_pulse_lists(self, lime, pulse_amplitude, pulse_shape, modulated_phase):
@@ -624,7 +627,8 @@ class LimeNQRController(BaseSpectrometerController):
         """This method sets the number of averages for the spectrometer.
 
         Args:
-            value (int): The number of averages"""
+        value (int): The number of averages
+        """
         logger.debug("Setting averages to: %s", value)
         try:
             self.module.model.averages = int(value)

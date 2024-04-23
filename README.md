@@ -27,9 +27,14 @@ Ideally you should install the module in a virtual environment. You can create a
 python -m venv nqrduck
 ```
 
-You can install this module and the dependencies by running the following command in the terminal:
+You can install this module and the dependencies by running the following command in the terminal after cloning the repositor and navigating to the module directory:
 ```bash
 pip install .
+```
+
+Alternatively you can install the module via the PyPi package manager by running the following command in the terminal:
+```bash
+pip install nqrduck-spectrometer-limenqr
 ```
 
 ## Usage

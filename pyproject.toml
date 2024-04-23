@@ -7,9 +7,9 @@ allow-direct-references = true
 
 [project]
 name = "nqrduck-spectrometer-limenqr"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
-  { name="Julia Pfitzer", email="git@jupfi.me" },
+  { name="jupfi", email="support@nqrduck.cool" },
 ]
 
 description = "A submodule for the nqrduck-spectrometer module which implements the functionality for the LimeNQR spectrometer."
@@ -20,11 +20,11 @@ requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
 ]
 
 dependencies = [
-    "limedriver @ git+https://github.com/nqrduck/LimeDriverBindings",
+    "limedriver",
     "nqrduck-spectrometer",
     "pyqt6",
     "h5py",
@@ -33,3 +33,28 @@ dependencies = [
 
 [project.entry-points."nqrduck"]
 "nqrduck-spectrometer-limenqr" = "nqrduck_spectrometer_limenqr.limenqr:LimeNQR"
+
+[tool.ruff]
+exclude = [
+  "widget.py",
+]
+
+[tool.ruff.lint]
+extend-select = [
+  "UP",  # pyupgrade
+  "D",   # pydocstyle
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[project.urls]
+"Homepage" = "https://nqrduck.cool"
+"Bug Tracker" = "https://github.com/nqrduck/nqrduck-spectrometer-limenqr/issues"
+"Source Code" = "https://github.com/nqrduck/nqrduck-spectrometer-limenqr"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nqrduck_spectrometer_limenqr"]
