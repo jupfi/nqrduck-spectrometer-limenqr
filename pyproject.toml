@@ -15,7 +15,7 @@ authors = [
 description = "A submodule for the nqrduck-spectrometer module which implements the functionality for the LimeNQR spectrometer."
 readme = "README.md"
 license = { file="LICENSE" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 classifiers = [
     "Programming Language :: Python :: 3",

@@ -2,7 +2,6 @@ import logging
 import tempfile
 from pathlib import Path
 import numpy as np
-from decimal import Decimal
 
 from limedriver.binding import PyLimeConfig
 from limedriver.hdf_reader import HDF
@@ -407,7 +406,7 @@ class LimeNQRController(BaseSpectrometerController):
         """
         pulse_shape = parameter.get_option_by_name(TXPulse.TX_PULSE_SHAPE).value
         pulse_amplitude = abs(pulse_shape.get_pulse_amplitude(event.duration)) * \
-                          parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value
+                          (parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value / 100)
         pulse_amplitude = np.clip(pulse_amplitude, -0.99, 0.99)
         return pulse_shape, pulse_amplitude
 
@@ -453,7 +452,7 @@ class LimeNQRController(BaseSpectrometerController):
         pdr = [float(pulse_shape.resolution)] * len(pulse_amplitude)
         pam = list(pulse_amplitude)
         pof = ([self.module.model.OFFSET_FIRST_PULSE] +
-                    [int(pulse_shape.resolution * Decimal(lime.srate))] * (len(pulse_amplitude) - 1))
+                    [int(pulse_shape.resolution * lime.srate)] * (len(pulse_amplitude) - 1))
         pph = list(modulated_phase)
 
         return  pfr, pdr, pam, pof, pph
