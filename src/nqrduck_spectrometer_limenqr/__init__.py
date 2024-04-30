@@ -1,0 +1,1 @@
+"""Init file for the nqrduck_spectrometer_limenqr package."""
