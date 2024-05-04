@@ -4,10 +4,12 @@ import logging
 import tempfile
 from pathlib import Path
 import numpy as np
+from scipy.signal import resample, decimate
 
 from limedriver.binding import PyLimeConfig
 from limedriver.hdf_reader import HDF
 
+from nqrduck.helpers.unitconverter import UnitConverter
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
 from nqrduck_spectrometer.pulseparameters import TXPulse, RXReadout
@@ -54,6 +56,29 @@ class LimeNQRController(BaseSpectrometerController):
             return -1
 
         measurement_data = self.process_measurement_results(lime)
+
+        # Resample the RX data to the dwell time settings
+        dwell_time = self.module.model.get_setting_by_name(
+            self.module.model.RX_DWELL_TIME
+        ).value
+        dwell_time = UnitConverter.to_float(dwell_time) * 1e6
+        logger.debug("Dwell time: %s", dwell_time)
+        logger.debug(f"Last tdx value: {measurement_data.tdx[-1]}")
+        if dwell_time:
+            n_data_points = int(measurement_data.tdx[-1] / dwell_time)
+            logger.debug("Resampling to %s data points", n_data_points)
+            tdx = np.linspace(
+                0, measurement_data.tdx[-1], n_data_points, endpoint=False
+            )
+            tdy = resample(measurement_data.tdy, n_data_points)
+            measurement_data = Measurement(
+                tdx,
+                tdy,
+                self.module.model.target_frequency,
+                IF_frequency=self.module.model.if_frequency,
+            )
+
+            
 
         if measurement_data:
             self.emit_measurement_data(measurement_data)
@@ -456,6 +481,7 @@ class LimeNQRController(BaseSpectrometerController):
             parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value / 100
         )
         pulse_amplitude = np.clip(pulse_amplitude, -0.99, 0.99)
+
         return pulse_shape, pulse_amplitude
 
     def modulate_pulse_amplitude(
@@ -475,6 +501,11 @@ class LimeNQRController(BaseSpectrometerController):
         num_samples = int(float(event.duration) * lime.srate)
         tdx = np.linspace(0, float(event.duration), num_samples, endpoint=False)
         shift_signal = np.exp(1j * 2 * np.pi * self.module.model.if_frequency * tdx)
+
+        # The pulse amplitude needs to be resampled to the number of samples
+        logger.debug("Resampling pulse amplitude to %s samples", num_samples)
+        pulse_amplitude = resample(pulse_amplitude, num_samples)
+
         pulse_complex = pulse_amplitude * shift_signal
         modulated_amplitude = np.abs(pulse_complex)
         modulated_phase = self.unwrap_phase(np.angle(pulse_complex))
