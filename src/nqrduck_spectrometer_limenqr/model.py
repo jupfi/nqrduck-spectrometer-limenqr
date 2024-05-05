@@ -8,6 +8,7 @@ from nqrduck_spectrometer.settings import (
     IntSetting,
     BooleanSetting,
     SelectionSetting,
+    StringSetting,
 )
 
 logger = logging.getLogger(__name__)
@@ -19,17 +20,18 @@ class LimeNQRModel(BaseSpectrometerModel):
     CHANNEL = "TX/RX Channel"
     TX_MATCHING = "TX Matching"
     RX_MATCHING = "RX Matching"
-    SAMPLING_FREQUENCY = "Sampling Frequency"
-    IF_FREQUENCY = "IF Frequency"
-    ACQUISITION_TIME = "Acquisition time"
+    SAMPLING_FREQUENCY = "Sampling Frequency (Hz)"
+    RX_DWELL_TIME = "RX Dwell Time (s)"
+    IF_FREQUENCY = "IF Frequency (Hz)"
+    ACQUISITION_TIME = "Acquisition time (s)"
     GATE_ENABLE = "Enable"
     GATE_PADDING_LEFT = "Gate padding left"
     GATE_PADDING_RIGHT = "Gate padding right"
     GATE_SHIFT = "Gate shift"
     RX_GAIN = "RX Gain"
     TX_GAIN = "TX Gain"
-    RX_LPF_BW = "RX LPF BW"
-    TX_LPF_BW = "TX LPF BW"
+    RX_LPF_BW = "RX LPF BW (Hz)"
+    TX_LPF_BW = "TX LPF BW (Hz)"
     TX_I_DC_CORRECTION = "TX I DC correction"
     TX_Q_DC_CORRECTION = "TX Q DC correction"
     TX_I_GAIN_CORRECTION = "TX I Gain correction"
@@ -79,14 +81,26 @@ class LimeNQRModel(BaseSpectrometerModel):
         )
         self.add_setting(rx_matching_setting, self.ACQUISITION)
 
-        sampling_frequency_setting = FloatSetting(
+
+        sampling_frequency_options = [
+            "30.72e6",
+            "15.36e6",
+            "7.68e6",
+        ]
+        sampling_frequency_setting = SelectionSetting(
             self.SAMPLING_FREQUENCY,
-            30.72e6,
+            sampling_frequency_options,
+            "30.72e6",
             "The rate at which the spectrometer samples the input signal.",
-            min_value=0,
-            max_value=30.72e6,
         )
         self.add_setting(sampling_frequency_setting, self.ACQUISITION)
+
+        rx_dwell_time_setting = StringSetting(
+            self.RX_DWELL_TIME,
+            "22n",
+            "The time between samples in the receive path.",
+        )
+        self.add_setting(rx_dwell_time_setting, self.ACQUISITION)
 
         if_frequency_setting = FloatSetting(
             self.IF_FREQUENCY,

@@ -1,13 +1,16 @@
 """Controller module for the Lime NQR spectrometer."""
 
 import logging
+from datetime import datetime
 import tempfile
 from pathlib import Path
 import numpy as np
+from scipy.signal import resample, decimate
 
 from limedriver.binding import PyLimeConfig
 from limedriver.hdf_reader import HDF
 
+from nqrduck.helpers.unitconverter import UnitConverter
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
 from nqrduck_spectrometer.measurement import Measurement
 from nqrduck_spectrometer.pulseparameters import TXPulse, RXReadout
@@ -54,6 +57,30 @@ class LimeNQRController(BaseSpectrometerController):
             return -1
 
         measurement_data = self.process_measurement_results(lime)
+
+        # Resample the RX data to the dwell time settings
+        dwell_time = self.module.model.get_setting_by_name(
+            self.module.model.RX_DWELL_TIME
+        ).value
+        dwell_time = UnitConverter.to_float(dwell_time) * 1e6
+        logger.debug("Dwell time: %s", dwell_time)
+        logger.debug(f"Last tdx value: {measurement_data.tdx[-1]}")
+
+        if dwell_time:
+            n_data_points = int(measurement_data.tdx[-1] / dwell_time)
+            logger.debug("Resampling to %s data points", n_data_points)
+            tdx = np.linspace(
+                0, measurement_data.tdx[-1], n_data_points, endpoint=False
+            )
+            tdy = resample(measurement_data.tdy, n_data_points)
+            name = measurement_data.name
+            measurement_data = Measurement(
+                name,
+                tdx,
+                tdy,
+                self.module.model.target_frequency,
+                IF_frequency=self.module.model.if_frequency,
+            )
 
         if measurement_data:
             self.emit_measurement_data(measurement_data)
@@ -168,7 +195,11 @@ class LimeNQRController(BaseSpectrometerController):
             evidx = self.find_evaluation_range_indices(hdf, rx_begin, rx_stop)
             tdx, tdy = self.extract_measurement_data(lime, hdf, evidx)
             fft_shift = self.get_fft_shift()
+            # Measurement name date + module + target frequency + averages + sequence name
+            name = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - LimeNQR - {self.module.model.target_frequency / 1e6} MHz - {self.module.model.averages} averages - {self.module.model.pulse_programmer.model.pulse_sequence.name}.quack"
+            logger.debug(f"Measurement name: {name}")
             return Measurement(
+                name,
                 tdx,
                 tdy,
                 self.module.model.target_frequency,
@@ -456,6 +487,7 @@ class LimeNQRController(BaseSpectrometerController):
             parameter.get_option_by_name(TXPulse.RELATIVE_AMPLITUDE).value / 100
         )
         pulse_amplitude = np.clip(pulse_amplitude, -0.99, 0.99)
+
         return pulse_shape, pulse_amplitude
 
     def modulate_pulse_amplitude(
@@ -475,6 +507,11 @@ class LimeNQRController(BaseSpectrometerController):
         num_samples = int(float(event.duration) * lime.srate)
         tdx = np.linspace(0, float(event.duration), num_samples, endpoint=False)
         shift_signal = np.exp(1j * 2 * np.pi * self.module.model.if_frequency * tdx)
+
+        # The pulse amplitude needs to be resampled to the number of samples
+        logger.debug("Resampling pulse amplitude to %s samples", num_samples)
+        pulse_amplitude = resample(pulse_amplitude, num_samples)
+
         pulse_complex = pulse_amplitude * shift_signal
         modulated_amplitude = np.abs(pulse_complex)
         modulated_phase = self.unwrap_phase(np.angle(pulse_complex))
@@ -610,7 +647,7 @@ class LimeNQRController(BaseSpectrometerController):
             result
         )  # Reversed to maintain the original order if needed elsewhere
 
-    def translate_rx_event(self, lime : PyLimeConfig) -> tuple:
+    def translate_rx_event(self, lime: PyLimeConfig) -> tuple:
         """This method translates the RX event of the pulse sequence to the limr object.
 
         Args:
@@ -671,7 +708,7 @@ class LimeNQRController(BaseSpectrometerController):
         previous_events = events[: events.index(rx_event)]
         return sum(event.duration for event in previous_events)
 
-    def calculate_offset(self, lime :PyLimeConfig) -> float:
+    def calculate_offset(self, lime: PyLimeConfig) -> float:
         """This method calculates the offset for the RX event.
 
         Args:
