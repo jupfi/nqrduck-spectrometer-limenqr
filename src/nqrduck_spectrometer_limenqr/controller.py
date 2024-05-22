@@ -58,6 +58,10 @@ class LimeNQRController(BaseSpectrometerController):
 
         measurement_data = self.process_measurement_results(lime)
 
+        if not measurement_data:
+            self.emit_measurement_error("Measurement failed. Unable to retrieve data.")
+            return -1
+
         # Resample the RX data to the dwell time settings
         dwell_time = self.module.model.get_setting_by_name(
             self.module.model.RX_DWELL_TIME
