@@ -31,11 +31,13 @@ class DuckLimeNQRController(BaseSpectrometerController):
         measurement_data = limenqr.run_sequence(sequence)
 
         # Emit the data to the nqrduck core
-        if measurement_data:
+        if measurement_data.tdx and measurement_data.tdy:
             self.emit_status_message("Finished Measurement")
             self.emit_measurement_data(measurement_data)
         else:
-            self.emit_measurement_error("Measurement failed - no data could be retrieved. Did you connect the spectrometer?")
+            # The error is the name of the error message
+            error = measurement_data.name
+            self.emit_measurement_error("Measurement failed - no data could be retrieved. Error: " + error)
 
     def emit_measurement_data(self, measurement_data: Measurement) -> None:
         """Emits the measurement data to the GUI.
