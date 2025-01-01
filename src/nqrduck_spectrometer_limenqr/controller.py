@@ -3,7 +3,7 @@
 import logging
 
 from nqrduck_spectrometer.base_spectrometer_controller import BaseSpectrometerController
-from quackseq.measurement import Measurement
+from quackseq.measurement import Measurement, MeasurementError
 from quackseq_limenqr.limenqr import LimeNQR
 
 
@@ -31,7 +31,7 @@ class DuckLimeNQRController(BaseSpectrometerController):
         measurement_data = limenqr.run_sequence(sequence)
 
         # Emit the data to the nqrduck core
-        if measurement_data.tdx and measurement_data.tdy:
+        if not isinstance(measurement_data, MeasurementError):
             self.emit_status_message("Finished Measurement")
             self.emit_measurement_data(measurement_data)
         else:
